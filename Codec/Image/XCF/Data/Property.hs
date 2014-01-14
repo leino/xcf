@@ -8,11 +8,14 @@ module Codec.Image.XCF.Data.Property (
   , Guide (..)
   , GuideCoordinate (..)
   , GuideOrientation (..)
-  , Unit (..)  
+  , Unit (..)
+  , Parasite (..)
    )
        where
 
 import Codec.Image.XCF.Data.Word
+import Data.ByteString
+import Data.Text
 import Data.Word hiding (Word)
 
 class Represented a b where
@@ -92,6 +95,8 @@ data Property =
 
 data GuideOrientation = Horizontal | Vertical deriving (Bounded, Enum, Show)
 data Unit = Inches | Millimeters | Points | Picas deriving (Bounded, Enum, Show)
+
+data Parasite = Parasite {name :: Text, flags :: UWord, payload :: ByteString}
 
 newtype GuideCoordinate = GuideCoordinate Word
 data Guide = Guide GuideCoordinate GuideOrientation

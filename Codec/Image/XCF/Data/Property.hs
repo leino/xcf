@@ -14,12 +14,11 @@ module Codec.Image.XCF.Data.Property (
        where
 
 import Codec.Image.XCF.Data.Word
+import qualified Codec.Image.XCF.Data.Path as Path
+import Codec.Image.XCF.Represented
 import Data.ByteString
 import Data.Text
 import Data.Word hiding (Word)
-
-class Represented a b where
-  representation :: b -> a
 
 -- Basically a transcription from gimp-2.8.6/app/xcf/xcf-private.h
 data Type =
@@ -81,9 +80,9 @@ data Property =
   GuidesProperty [Guide] |
   ResolutionProperty {horizontalResolution :: Float, verticalResolution :: Float} |
   TattooProperty |
-  ParasitesProperty |
+  ParasitesProperty [Parasite] |
   UnitProperty Unit |
-  PathsProperty |
+  PathsProperty Path.Paths |
   UserUnitProperty |
   VectorsProperty |
   TextLayerFlagsProperty |
@@ -96,7 +95,7 @@ data Property =
 data GuideOrientation = Horizontal | Vertical deriving (Bounded, Enum, Show)
 data Unit = Inches | Millimeters | Points | Picas deriving (Bounded, Enum, Show)
 
-data Parasite = Parasite {name :: Text, flags :: UWord, payload :: ByteString}
+data Parasite = Parasite {name :: Text, flags :: Word8, payload :: ByteString}
 
 newtype GuideCoordinate = GuideCoordinate Word
 data Guide = Guide GuideCoordinate GuideOrientation

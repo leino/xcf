@@ -15,6 +15,7 @@ module Codec.Image.XCF.Data.Property (
 
 import Codec.Image.XCF.Data.Word
 import qualified Codec.Image.XCF.Data.Path as Path
+import qualified Codec.Image.XCF.Data.UserUnit as UserUnit
 import Codec.Image.XCF.Represented
 import Data.ByteString
 import Data.Text
@@ -83,7 +84,7 @@ data Property =
   ParasitesProperty [Parasite] |
   UnitProperty Unit |
   PathsProperty Path.Paths |
-  UserUnitProperty |
+  UserUnitProperty UserUnit.UserUnit |
   VectorsProperty |
   TextLayerFlagsProperty |
   SamplePointsProperty |

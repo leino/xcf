@@ -19,6 +19,7 @@ import Codec.Image.XCF.Represented
 import Codec.Image.XCF.Data.Word
 import Codec.Image.XCF.Data.Path as Path
 import Codec.Image.XCF.Data.Tattoo as Tattoo
+import Codec.Image.XCF.Data.UserUnit as UserUnit
 
 import qualified Data.Attoparsec as Attoparsec
 import qualified Data.Attoparsec.Binary as Attoparsec
@@ -46,7 +47,9 @@ newtype ChannelPointer = ChannelPointer UWord
 newtype Size = Size Int64 deriving (Show, Eq)
 newtype CheckedParser a = CheckedParser (StateT Size Attoparsec.Parser a) deriving (Monad, Alternative, Applicative, Functor)
 
-
+-- This type-class constitutes our (tiny) API of binary parsers.
+-- It is specified here because we want to re-use some parsers as either
+-- CheckedParser or plain Attoparsec parsers
 class Parsing p where
   anyWord8 :: p Word8
   word8 :: Word8 -> p Word8
@@ -311,7 +314,24 @@ propertyOfType t = do
       paths <- parseChecked "paths" payloadSize $ count numPaths path
       return $ Property.PathsProperty $ Path.Paths {Path.activeIdx = activePathIdx,
                                                     Path.paths = paths}
-    Property.UserUnitType -> undefined
+    Property.UserUnitType -> do
+      payloadSize <- (Size . fromIntegral) <$> anyUword
+      let userUnit = do
+            factor <- satisfying anyFloat (>= 0.0)
+            digits <- fromIntegral <$> anyUword
+            id <- anyString
+            symbol <- anyString
+            abbreviation <- anyString
+            nameSingular <- anyString
+            namePlural <- anyString
+            return $ UserUnit.UserUnit {UserUnit.factor = factor,
+                                        UserUnit.numDecimals = digits,
+                                        UserUnit.identifier = id,
+                                        UserUnit.symbol = symbol,
+                                        UserUnit.abbreviation = abbreviation,
+                                        UserUnit.nameSingular = nameSingular,
+                                        UserUnit.namePlural = namePlural}
+      Property.UserUnitProperty <$> parseChecked "user unit" payloadSize userUnit
     Property.VectorsType -> undefined
     Property.TextLayerFlagsType -> undefined
     Property.SamplePointsType -> undefined

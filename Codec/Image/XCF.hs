@@ -14,6 +14,7 @@ import qualified Codec.Image.XCF.Data.ColorMode as ColorMode
 import qualified Codec.Image.XCF.Data.Image as Image
 import qualified Codec.Image.XCF.Data.Property as Property
 import qualified Codec.Image.XCF.Data.Version as Version
+import qualified Codec.Image.XCF.Data.TextLayerFlags as TextLayerFlags
 
 import Codec.Image.XCF.Represented
 import Codec.Image.XCF.Data.Word
@@ -47,7 +48,8 @@ newtype LayerPointer = LayerPointer UWord
 newtype ChannelPointer = ChannelPointer UWord
 
 newtype Size = Size Int64 deriving (Show, Eq)
-newtype CheckedParser a = CheckedParser (StateT Size Attoparsec.Parser a) deriving (Monad, Alternative, Applicative, Functor)
+newtype CheckedParser a = CheckedParser (StateT Size Attoparsec.Parser a)
+                        deriving (Monad, Alternative, Applicative, Functor)
 
 -- This type-class constitutes our (tiny) API of binary parsers.
 -- It is specified here because we want to re-use some parsers as either
@@ -395,7 +397,9 @@ propertyOfType t = do
           Vectors.activePathIdx = activePathIdx,
           Vectors.paths = paths
           }
-    Property.TextLayerFlagsType -> undefined
+    Property.TextLayerFlagsType -> do
+      satisfying (fromIntegral <$> anyUword) ((==) 4)
+      (Property.TextLayerFlagsProperty . TextLayerFlags.TextLayerFlags) <$> anyUword
     Property.SamplePointsType -> undefined
     Property.LockContentType -> undefined
     Property.GroupItemType -> undefined

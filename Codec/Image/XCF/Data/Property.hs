@@ -17,6 +17,8 @@ import qualified Codec.Image.XCF.Data.Path as Path
 import qualified Codec.Image.XCF.Data.UserUnit as UserUnit
 import qualified Codec.Image.XCF.Data.Parasite as Parasite
 import qualified Codec.Image.XCF.Data.Vectors as Vectors
+import qualified Codec.Image.XCF.Data.TextLayerFlags as TextLayerFlags
+
 import Codec.Image.XCF.Represented
 import Data.ByteString
 import Data.Text
@@ -87,7 +89,7 @@ data Property =
   PathsProperty Path.Paths |
   UserUnitProperty UserUnit.UserUnit |
   VectorsProperty Vectors.Vectors  |
-  TextLayerFlagsProperty |
+  TextLayerFlagsProperty TextLayerFlags.TextLayerFlags |
   SamplePointsProperty |
   LockContentProperty |
   GroupItemProperty |

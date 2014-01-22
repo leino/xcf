@@ -20,6 +20,8 @@ import Codec.Image.XCF.Data.Word
 import Codec.Image.XCF.Data.Path as Path
 import Codec.Image.XCF.Data.Tattoo as Tattoo
 import Codec.Image.XCF.Data.UserUnit as UserUnit
+import Codec.Image.XCF.Data.Parasite as Parasite
+import Codec.Image.XCF.Data.Vectors as Vectors
 
 import qualified Data.Attoparsec as Attoparsec
 import qualified Data.Attoparsec.Binary as Attoparsec
@@ -225,6 +227,22 @@ divisible n x = x `mod` n == 0
 anyFloat :: Parsing p => p Float
 anyFloat = undefined
 
+anyTattoo :: (Functor p, Parsing p) => p Tattoo.Tattoo
+anyTattoo = Tattoo.Tattoo <$> anyUword
+
+anyParasite :: (Monad p, Parsing p, Alternative p) => p Parasite.Parasite
+anyParasite = do
+  s <- anyString
+  f <- anyWord8
+  n <- fromIntegral <$> anyWord8
+  bs <- take n
+  return $ Parasite.Parasite {
+    Parasite.name = s,
+    Parasite.flags = f,
+    Parasite.payload = bs
+    }
+
+
 propertyOfType :: Property.Type -> Attoparsec.Parser Property.Property
 propertyOfType t = do
   propertyType t
@@ -267,22 +285,11 @@ propertyOfType t = do
       l <- fromIntegral <$> anyWord8
       -- use "checked" versions of all parsers, which keep track of how much has been parsed
       -- and fail immediately if we go over the limit, l
-      let checkedParasite :: CheckedParser Property.Parasite
-          checkedParasite = do
-            s <- anyString
-            f <- anyWord8
-            n <- fromIntegral <$> anyWord8
-            bs <- take n
-            return $ Property.Parasite {Property.name = s,
-                                        Property.flags = f,
-                                        Property.payload = bs}
-      ps <- parseChecked "parasites" (Size l) (many checkedParasite)
+      ps <- parseChecked "parasites" (Size l) (many anyParasite)
       return $ Property.ParasitesProperty ps
     Property.UnitType -> satisfying (fromIntegral <$> anyUword) ((==) 4) >> Property.UnitProperty <$> anyUnit
     Property.PathsType -> do
       payloadSize <- (Size . fromIntegral) <$> anyUword
-      activePathIdx <- fromIntegral <$> anyUword
-      numPaths <- fromIntegral <$> anyUword
       let path :: CheckedParser Path.Path
           path = do
             name <- anyString
@@ -309,9 +316,13 @@ propertyOfType t = do
               Path.Integral -> Path.IntegralPath <$> count numPoints (anyPoint anyInt)
               Path.Float -> Path.FloatPath <$> count numPoints (anyPoint anyFloat)
               Path.Tattoo -> do
-                maybeTattoo <- (uWord 0 >> return Nothing) <|> (Just . Tattoo.Tattoo <$> anyUword)
+                maybeTattoo <- (uWord 0 >> return Nothing) <|> (Just <$> anyTattoo)
                 Path.TattooPath <$> count numPoints (anyPoint anyFloat)
-      paths <- parseChecked "paths" payloadSize $ count numPaths path
+      (activePathIdx, paths) <- parseChecked "paths" payloadSize $ do
+        activePathIdx <- fromIntegral <$> anyUword
+        numPaths <- fromIntegral <$> anyUword
+        paths <- count numPaths path
+        return (activePathIdx, paths)
       return $ Property.PathsProperty $ Path.Paths {Path.activeIdx = activePathIdx,
                                                     Path.paths = paths}
     Property.UserUnitType -> do
@@ -332,7 +343,58 @@ propertyOfType t = do
                                         UserUnit.nameSingular = nameSingular,
                                         UserUnit.namePlural = namePlural}
       Property.UserUnitProperty <$> parseChecked "user unit" payloadSize userUnit
-    Property.VectorsType -> undefined
+    Property.VectorsType -> do
+      payloadSize <- (Size . fromIntegral) <$> anyUword
+      parseChecked "vectors" payloadSize $ do
+        satisfying (fromIntegral <$> anyUword) ((==) 1)
+        activePathIdx <- fromIntegral <$> anyUword
+        numPaths <- fromIntegral <$> anyUword
+        let path = do
+              name <- anyString
+              maybeTattoo <- (uWord 0 >> return Nothing) <|> (Just <$> anyTattoo)
+              visible <- ((/=) 0 . fromIntegral) <$> anyUword
+              linked <- ((/=) 0 . fromIntegral) <$> anyUword
+              numParasites <- fromIntegral <$> anyUword
+              numStrokes <- fromIntegral <$> anyUword
+              parasites <- count numParasites anyParasite
+              let anyStroke = do
+                    satisfying (fromIntegral <$> anyUword) ((==) 1)
+                    closed <- ((/=) 0 . fromIntegral) <$> anyUword
+                    numFloats <- satisfying (fromIntegral <$> anyUword) (\n -> n >= 2 && n <= 6)
+                    numControlPoints <- fromIntegral <$> anyUword
+                    let anyControlPoint = do
+                          t <- representedEnumerable uWord
+                          x <- anyFloat
+                          y <- anyFloat
+                          pressure <- if numFloats >= 3 then anyFloat else return 1.0
+                          xTilt <- if numFloats >= 4 then anyFloat else return 0.5
+                          yTilt <- if numFloats >= 5 then anyFloat else return 0.5
+                          wheel <- if numFloats == 6 then anyFloat else return 0.5
+                          return $ Vectors.ControlPoint {
+                            Vectors.pointType = t,
+                            Vectors.x = x,
+                            Vectors.y = y,
+                            Vectors.pressure = pressure,
+                            Vectors.xTilt = xTilt,
+                            Vectors.yTilt = yTilt,
+                            Vectors.wheel = wheel
+                            }
+                    points <- count numControlPoints anyControlPoint
+                    return $ Vectors.Stroke {Vectors.closed = closed,
+                                             Vectors.controlPoints = points}
+              strokes <- count numStrokes anyStroke
+              return $ Vectors.Path {
+                Vectors.name = name,
+                Vectors.tattoo = maybeTattoo,
+                Vectors.visible = visible,
+                Vectors.linked = linked,
+                Vectors.parasites = parasites,
+                Vectors.strokes = strokes}
+        paths <- count numPaths path
+        return $ Property.VectorsProperty $ Vectors.Vectors {
+          Vectors.activePathIdx = activePathIdx,
+          Vectors.paths = paths
+          }
     Property.TextLayerFlagsType -> undefined
     Property.SamplePointsType -> undefined
     Property.LockContentType -> undefined

@@ -9,13 +9,14 @@ module Codec.Image.XCF.Data.Property (
   , GuideCoordinate (..)
   , GuideOrientation (..)
   , Unit (..)
-  , Parasite (..)
    )
        where
 
 import Codec.Image.XCF.Data.Word
 import qualified Codec.Image.XCF.Data.Path as Path
 import qualified Codec.Image.XCF.Data.UserUnit as UserUnit
+import qualified Codec.Image.XCF.Data.Parasite as Parasite
+import qualified Codec.Image.XCF.Data.Vectors as Vectors
 import Codec.Image.XCF.Represented
 import Data.ByteString
 import Data.Text
@@ -81,11 +82,11 @@ data Property =
   GuidesProperty [Guide] |
   ResolutionProperty {horizontalResolution :: Float, verticalResolution :: Float} |
   TattooProperty |
-  ParasitesProperty [Parasite] |
+  ParasitesProperty [Parasite.Parasite] |
   UnitProperty Unit |
   PathsProperty Path.Paths |
   UserUnitProperty UserUnit.UserUnit |
-  VectorsProperty |
+  VectorsProperty Vectors.Vectors  |
   TextLayerFlagsProperty |
   SamplePointsProperty |
   LockContentProperty |
@@ -95,8 +96,6 @@ data Property =
 
 data GuideOrientation = Horizontal | Vertical deriving (Bounded, Enum, Show)
 data Unit = Inches | Millimeters | Points | Picas deriving (Bounded, Enum, Show)
-
-data Parasite = Parasite {name :: Text, flags :: Word8, payload :: ByteString}
 
 newtype GuideCoordinate = GuideCoordinate Word
 data Guide = Guide GuideCoordinate GuideOrientation

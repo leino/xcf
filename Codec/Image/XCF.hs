@@ -15,8 +15,10 @@ import qualified Codec.Image.XCF.Data.Image as Image
 import qualified Codec.Image.XCF.Data.Property as Property
 import qualified Codec.Image.XCF.Data.Version as Version
 import qualified Codec.Image.XCF.Data.TextLayerFlags as TextLayerFlags
+import qualified Codec.Image.XCF.Data.Color as Color
 import qualified Codec.Image.XCF.Data.ColorMap as ColorMap
 import qualified Codec.Image.XCF.Data.FloatingSelection as FloatingSelection
+import qualified Codec.Image.XCF.Data.Offset as Offset
 
 import Codec.Image.XCF.Represented
 import Codec.Image.XCF.Data.Word
@@ -278,13 +280,30 @@ propertyOfType t = do
       Property.ModeProperty <$> representedEnumerable uWord
     Property.VisibleType -> undefined
     Property.LinkedType -> undefined
-    Property.LockAlphaType -> undefined
-    Property.ApplyMaskType -> undefined
-    Property.EditMaskType -> undefined
-    Property.ShowMaskType -> undefined
+    Property.LockAlphaType -> do
+      satisfying (fromIntegral <$> anyUword) ((==) 4)
+      Property.LockAlphaProperty <$> ( (uWord 1 >> return True) <|> (uWord 0 >> return False) )
+    Property.ApplyMaskType -> do
+      satisfying (fromIntegral <$> anyUword) ((==) 4)
+      Property.ApplyMaskProperty <$> ( (uWord 1 >> return True) <|> (uWord 0 >> return False) )
+    Property.EditMaskType -> do
+      satisfying (fromIntegral <$> anyUword) ((==) 4)
+      Property.EditMaskProperty <$> ( (uWord 1 >> return True) <|> (uWord 0 >> return False) )
+    Property.ShowMaskType -> do
+      satisfying (fromIntegral <$> anyUword) ((==) 4)
+      Property.ShowMaskProperty <$> ( (uWord 1 >> return True) <|> (uWord 0 >> return False) )      
     Property.ShowMaskedType -> undefined
-    Property.OffsetsType -> undefined
-    Property.ColorType -> undefined
+    Property.OffsetsType -> do
+      satisfying (fromIntegral <$> anyUword) ((==) 8)
+      dx <- fromIntegral <$> anyWord
+      dy <- fromIntegral <$> anyWord
+      return $ Property.OffsetsProperty $ Offset.Offset {
+        Offset.xOffset = dx,
+        Offset.yOffset = dy
+        }
+    Property.ColorType -> do
+      satisfying anyUword ((==) 3)
+      Property.ColorProperty <$> (Color.Color <$> anyWord8 <*> anyWord8 <*> anyWord8)
     Property.CompressionType -> do
       uWord $ fromIntegral 1
       Property.CompressionProperty <$> anyCompressionIndicator

@@ -11,4 +11,4 @@ uWordSize :: Int64
 uWordSize = 4
 
 newtype UWord = UWord Word32 deriving (Real, Ord, Enum, Eq, Num, Integral, Show)
-newtype Word = Word Word32
+newtype Word = Word Word32 deriving (Real, Ord, Enum, Eq, Num, Integral, Show)

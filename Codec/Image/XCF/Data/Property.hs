@@ -96,20 +96,32 @@ data Property =
   ItemPathProperty |
   GroupItemFlagsProperty
 
+
+
+-- TODO: move to own file under data
 data GuideOrientation = Horizontal | Vertical deriving (Bounded, Enum, Show)
+
+ -- TODO: move to own file under data
 data Unit = Inches | Millimeters | Points | Picas deriving (Bounded, Enum, Show)
 
+ -- TODO: move to own file under data
 newtype GuideCoordinate = GuideCoordinate Word
+
+ -- TODO: move to own file under data
 data Guide = Guide GuideCoordinate GuideOrientation
 
+ -- TODO: move to own file under data
 instance Represented Word8 CompressionIndicator where
   representation = fromIntegral . fromEnum
-  
+
+ -- TODO: move to own file under data
 instance Represented UWord Type where
   representation = UWord . fromIntegral . fromEnum
-  
+
+ -- TODO: move to own file under data
 instance Represented Word8 GuideOrientation where
   representation = (+) 1 . fromIntegral . fromEnum
 
+ -- TODO: move to own file under data
 instance Represented UWord Unit where
   representation = (+) 1 . fromIntegral . fromEnum

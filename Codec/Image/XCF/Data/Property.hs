@@ -19,6 +19,8 @@ import qualified Codec.Image.XCF.Data.Parasite as Parasite
 import qualified Codec.Image.XCF.Data.Vectors as Vectors
 import qualified Codec.Image.XCF.Data.TextLayerFlags as TextLayerFlags
 import qualified Codec.Image.XCF.Data.ColorMap as ColorMap
+import qualified Codec.Image.XCF.Data.FloatingSelection as FloatingSelection
+import qualified Codec.Image.XCF.Data.Mode as Mode
 
 import Codec.Image.XCF.Represented
 import Data.ByteString
@@ -69,9 +71,9 @@ data Property =
   ActiveLayerProperty |
   ActiveChannelProperty |
   SelectionProperty |
-  FloatingSelectionProperty |
+  FloatingSelectionProperty FloatingSelection.FloatingSelection |
   OpacityProperty |
-  ModeProperty |
+  ModeProperty Mode.Mode |
   VisibleProperty |
   LinkedProperty |
   LockAlphaProperty |

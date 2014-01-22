@@ -16,6 +16,7 @@ import qualified Codec.Image.XCF.Data.Property as Property
 import qualified Codec.Image.XCF.Data.Version as Version
 import qualified Codec.Image.XCF.Data.TextLayerFlags as TextLayerFlags
 import qualified Codec.Image.XCF.Data.ColorMap as ColorMap
+import qualified Codec.Image.XCF.Data.FloatingSelection as FloatingSelection
 
 import Codec.Image.XCF.Represented
 import Codec.Image.XCF.Data.Word
@@ -264,12 +265,17 @@ propertyOfType t = do
                  "but the number of colors indicated by the control word was",
                  show numColorsCheck]
       (Property.ColorMapProperty . ColorMap.ColorMap) <$> (count numColors anyColorMapColor)
-    Property.ActiveLayerType -> undefined
+    Property.ActiveLayerType ->
+      satisfying (fromIntegral <$> anyUword) ((==) 0) >> return Property.ActiveLayerProperty
     Property.ActiveChannelType -> undefined
     Property.SelectionType -> undefined
-    Property.FloatingSelectionType -> undefined
+    Property.FloatingSelectionType -> do
+      satisfying (fromIntegral <$> anyUword) ((==) 4)
+      (Property.FloatingSelectionProperty . FloatingSelection.FloatingSelection) <$> anyUword
     Property.OpacityType -> undefined
-    Property.ModeType -> undefined
+    Property.ModeType -> do
+      satisfying (fromIntegral <$> anyUword) ((==) 4)
+      Property.ModeProperty <$> representedEnumerable uWord
     Property.VisibleType -> undefined
     Property.LinkedType -> undefined
     Property.LockAlphaType -> undefined

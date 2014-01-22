@@ -15,6 +15,7 @@ import qualified Codec.Image.XCF.Data.Image as Image
 import qualified Codec.Image.XCF.Data.Property as Property
 import qualified Codec.Image.XCF.Data.Version as Version
 import qualified Codec.Image.XCF.Data.TextLayerFlags as TextLayerFlags
+import qualified Codec.Image.XCF.Data.ColorMap as ColorMap
 
 import Codec.Image.XCF.Represented
 import Codec.Image.XCF.Data.Word
@@ -244,13 +245,25 @@ anyParasite = do
     Parasite.payload = bs
     }
 
+anyColorMapColor :: (Functor p, Applicative p, Parsing p) => p ColorMap.Color
+anyColorMapColor = ColorMap.Color <$> anyWord8 <*> anyWord8 <*> anyWord8
 
 propertyOfType :: Property.Type -> Attoparsec.Parser Property.Property
 propertyOfType t = do
   propertyType t
   case t of
-    Property.EndType -> undefined
-    Property.ColorMapType -> undefined
+    Property.EndType ->
+      satisfying (fromIntegral <$> anyUword) ((==) 0) >> return Property.EndProperty
+    Property.ColorMapType -> do
+      threeNPlus4 <- satisfying (fromIntegral <$> anyUword) (\n -> (n `mod` 3 == 1) && n >= 4)
+      let numColors = (threeNPlus4 - 4) `div` 3
+      numColorsCheck <- (fromIntegral <$> anyUword)
+      unless (numColors == numColorsCheck) $ fail $
+        unwords ["number of colors indicated by payload size was",
+                 show numColors,
+                 "but the number of colors indicated by the control word was",
+                 show numColorsCheck]
+      (Property.ColorMapProperty . ColorMap.ColorMap) <$> (count numColors anyColorMapColor)
     Property.ActiveLayerType -> undefined
     Property.ActiveChannelType -> undefined
     Property.SelectionType -> undefined

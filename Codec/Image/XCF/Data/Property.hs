@@ -18,6 +18,7 @@ import qualified Codec.Image.XCF.Data.UserUnit as UserUnit
 import qualified Codec.Image.XCF.Data.Parasite as Parasite
 import qualified Codec.Image.XCF.Data.Vectors as Vectors
 import qualified Codec.Image.XCF.Data.TextLayerFlags as TextLayerFlags
+import qualified Codec.Image.XCF.Data.ColorMap as ColorMap
 
 import Codec.Image.XCF.Represented
 import Data.ByteString
@@ -64,7 +65,7 @@ data CompressionIndicator = None | RLE deriving (Bounded, Enum, Show)
 
 data Property =
   EndProperty |
-  ColorMapProperty |
+  ColorMapProperty ColorMap.ColorMap |
   ActiveLayerProperty |
   ActiveChannelProperty |
   SelectionProperty |

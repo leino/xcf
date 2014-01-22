@@ -255,8 +255,7 @@ propertyOfType :: Property.Type -> Attoparsec.Parser Property.Property
 propertyOfType t = do
   propertyType t
   case t of
-    Property.EndType ->
-      satisfying (fromIntegral <$> anyUword) ((==) 0) >> return Property.EndProperty
+    Property.EndType -> uWord 0 >> return Property.EndProperty
     Property.ColorMapType -> do
       threeNPlus4 <- satisfying (fromIntegral <$> anyUword) (\n -> (n `mod` 3 == 1) && n >= 4)
       let numColors = (threeNPlus4 - 4) `div` 3
@@ -268,66 +267,54 @@ propertyOfType t = do
                  show numColorsCheck]
       (Property.ColorMapProperty . ColorMap.ColorMap) <$> (count numColors anyColorMapColor)
     Property.ActiveLayerType ->
-      satisfying (fromIntegral <$> anyUword) ((==) 0) >> return Property.ActiveLayerProperty
-    Property.ActiveChannelType -> undefined
+      uWord 0 >> return Property.ActiveLayerProperty
+    Property.ActiveChannelType -> uWord 0 >> return Property.ActiveChannelProperty
     Property.SelectionType -> undefined
-    Property.FloatingSelectionType -> do
-      satisfying (fromIntegral <$> anyUword) ((==) 4)
-      (Property.FloatingSelectionProperty . FloatingSelection.FloatingSelection) <$> anyUword
+    Property.FloatingSelectionType -> 
+      uWord 4 >> (Property.FloatingSelectionProperty . FloatingSelection.FloatingSelection) <$> anyUword
     Property.OpacityType -> undefined
-    Property.ModeType -> do
-      satisfying (fromIntegral <$> anyUword) ((==) 4)
-      Property.ModeProperty <$> representedEnumerable uWord
+    Property.ModeType -> uWord 4 >> Property.ModeProperty <$> representedEnumerable uWord
     Property.VisibleType -> undefined
     Property.LinkedType -> undefined
-    Property.LockAlphaType -> do
-      satisfying (fromIntegral <$> anyUword) ((==) 4)
-      Property.LockAlphaProperty <$> ( (uWord 1 >> return True) <|> (uWord 0 >> return False) )
-    Property.ApplyMaskType -> do
-      satisfying (fromIntegral <$> anyUword) ((==) 4)
-      Property.ApplyMaskProperty <$> ( (uWord 1 >> return True) <|> (uWord 0 >> return False) )
-    Property.EditMaskType -> do
-      satisfying (fromIntegral <$> anyUword) ((==) 4)
-      Property.EditMaskProperty <$> ( (uWord 1 >> return True) <|> (uWord 0 >> return False) )
-    Property.ShowMaskType -> do
-      satisfying (fromIntegral <$> anyUword) ((==) 4)
-      Property.ShowMaskProperty <$> ( (uWord 1 >> return True) <|> (uWord 0 >> return False) )      
+    Property.LockAlphaType -> 
+      uWord 4 >> Property.LockAlphaProperty <$> ( (uWord 1 >> return True) <|> (uWord 0 >> return False) )
+    Property.ApplyMaskType -> 
+      uWord 4 >> Property.ApplyMaskProperty <$> ( (uWord 1 >> return True) <|> (uWord 0 >> return False) )
+    Property.EditMaskType -> 
+      uWord 4 >> Property.EditMaskProperty <$> ( (uWord 1 >> return True) <|> (uWord 0 >> return False) )
+    Property.ShowMaskType -> 
+      uWord 4 >> Property.ShowMaskProperty <$> ( (uWord 1 >> return True) <|> (uWord 0 >> return False) )      
     Property.ShowMaskedType -> undefined
     Property.OffsetsType -> do
-      satisfying (fromIntegral <$> anyUword) ((==) 8)
+      uWord 8
       dx <- fromIntegral <$> anyWord
       dy <- fromIntegral <$> anyWord
       return $ Property.OffsetsProperty $ Offset.Offset {
         Offset.xOffset = dx,
         Offset.yOffset = dy
         }
-    Property.ColorType -> do
-      satisfying anyUword ((==) 3)
-      Property.ColorProperty <$> (Color.Color <$> anyWord8 <*> anyWord8 <*> anyWord8)
-    Property.CompressionType -> do
-      uWord $ fromIntegral 1
-      Property.CompressionProperty <$> anyCompressionIndicator
+    Property.ColorType -> 
+      uWord 3 >> Property.ColorProperty <$> (Color.Color <$> anyWord8 <*> anyWord8 <*> anyWord8)
+    Property.CompressionType -> uWord 1 >> Property.CompressionProperty <$> anyCompressionIndicator
     Property.GuidesType -> do
-      n <- (flip div 5) <$> satisfying (fromIntegral <$> anyUword) (divisible 5)
+      n <- (flip div 5 . fromIntegral) <$> satisfying anyUword (divisible 5)
       Property.GuidesProperty <$> Attoparsec.count n anyGuide
     Property.ResolutionType -> do
-      satisfying (fromIntegral <$> anyUword) ((==) 8)
+      uWord 8
       x <- satisfying anyFloat (> 0)
       y <- satisfying anyFloat (> 0)
       return $ Property.ResolutionProperty {
         Property.horizontalResolution = x,
         Property.verticalResolution = y
         }
-    Property.TattooType -> do
-      satisfying (fromIntegral <$> anyUword) ((==) 4)
-      Property.UnitProperty <$> anyUnit
+    Property.TattooType -> uWord 4 >> Property.UnitProperty <$> anyUnit
     Property.ParasitesType -> do
       l <- fromIntegral <$> anyWord8
       -- use "checked" versions of all parsers, which keep track of how much has been parsed
       -- and fail immediately if we go over the limit, l
       ps <- parseChecked "parasites" (Size l) (many anyParasite)
       return $ Property.ParasitesProperty ps
-    Property.UnitType -> satisfying (fromIntegral <$> anyUword) ((==) 4) >> Property.UnitProperty <$> anyUnit
+    Property.UnitType -> uWord 4 >> Property.UnitProperty <$> anyUnit
     Property.PathsType -> do
       payloadSize <- (Size . fromIntegral) <$> anyUword
       let path :: CheckedParser Path.Path
@@ -346,7 +333,7 @@ propertyOfType t = do
             numPoints <- fromIntegral <$> anyUword
             version <- representedEnumerable word8
             -- parse a dummy if not the integral path version
-            when (version /= Path.Integral) $ satisfying (fromIntegral <$> anyUword) ((==) 1) >> return ()
+            when (version /= Path.Integral) $ uWord 1 >> return ()
             let anyPoint p = do
                   pointType <- representedEnumerable uWord
                   x <- p
@@ -386,7 +373,7 @@ propertyOfType t = do
     Property.VectorsType -> do
       payloadSize <- (Size . fromIntegral) <$> anyUword
       parseChecked "vectors" payloadSize $ do
-        satisfying (fromIntegral <$> anyUword) ((==) 1)
+        uWord 1
         activePathIdx <- fromIntegral <$> anyUword
         numPaths <- fromIntegral <$> anyUword
         let path = do
@@ -398,9 +385,9 @@ propertyOfType t = do
               numStrokes <- fromIntegral <$> anyUword
               parasites <- count numParasites anyParasite
               let anyStroke = do
-                    satisfying (fromIntegral <$> anyUword) ((==) 1)
+                    uWord 1
                     closed <- ((/=) 0 . fromIntegral) <$> anyUword
-                    numFloats <- satisfying (fromIntegral <$> anyUword) (\n -> n >= 2 && n <= 6)
+                    numFloats <- satisfying anyUword (\n -> n >= 2 && n <= 6)
                     numControlPoints <- fromIntegral <$> anyUword
                     let anyControlPoint = do
                           t <- representedEnumerable uWord
@@ -436,7 +423,7 @@ propertyOfType t = do
           Vectors.paths = paths
           }
     Property.TextLayerFlagsType -> do
-      satisfying (fromIntegral <$> anyUword) ((==) 4)
+      uWord 4
       (Property.TextLayerFlagsProperty . TextLayerFlags.TextLayerFlags) <$> anyUword
     Property.SamplePointsType -> undefined
     Property.LockContentType -> undefined

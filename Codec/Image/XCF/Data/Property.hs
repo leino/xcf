@@ -9,6 +9,7 @@ module Codec.Image.XCF.Data.Property (
   , GuideCoordinate (..)
   , GuideOrientation (..)
   , Unit (..)
+  , allImageTypes
    )
        where
 
@@ -65,6 +66,18 @@ data Type =
   ItemPathType |
   GroupItemFlagsType
   deriving (Bounded, Enum, Show)
+
+allImageTypes :: [Type]
+allImageTypes = [
+  ColorMapType,
+  CompressionType,
+  GuidesType,
+  ResolutionType,
+  UnitType,
+  PathsType,
+  UserUnitType,
+  VectorsType
+  ]
 
 data CompressionIndicator = None | RLE deriving (Bounded, Enum, Show)
 

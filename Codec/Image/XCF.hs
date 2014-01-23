@@ -10,6 +10,16 @@ import qualified Data.ByteString as ByteString
 import qualified Data.ByteString.Char8 as CharString
 import Data.Text.Encoding
 import Data.Word hiding (Word)
+import qualified Data.Attoparsec as Attoparsec
+import qualified Data.Attoparsec.Binary as Attoparsec
+import qualified Data.Attoparsec.Combinator as ParserCombinators
+import Data.Int
+import Control.Monad (unless, when)
+import Control.Monad.Trans.Class (lift)
+import Control.Monad.Trans.State
+
+import Codec.Image.XCF.Represented
+import Codec.Image.XCF.Data.Word
 import qualified Codec.Image.XCF.Data.ColorMode as ColorMode
 import qualified Codec.Image.XCF.Data.Image as Image
 import qualified Codec.Image.XCF.Data.Property as Property
@@ -20,22 +30,12 @@ import qualified Codec.Image.XCF.Data.ColorMap as ColorMap
 import qualified Codec.Image.XCF.Data.FloatingSelection as FloatingSelection
 import qualified Codec.Image.XCF.Data.Offset as Offset
 import qualified Codec.Image.XCF.Data.Opacity as Opacity
+import qualified Codec.Image.XCF.Data.Path as Path
+import qualified Codec.Image.XCF.Data.Tattoo as Tattoo
+import qualified Codec.Image.XCF.Data.UserUnit as UserUnit
+import qualified Codec.Image.XCF.Data.Parasite as Parasite
+import qualified Codec.Image.XCF.Data.Vectors as Vectors
 
-import Codec.Image.XCF.Represented
-import Codec.Image.XCF.Data.Word
-import Codec.Image.XCF.Data.Path as Path
-import Codec.Image.XCF.Data.Tattoo as Tattoo
-import Codec.Image.XCF.Data.UserUnit as UserUnit
-import Codec.Image.XCF.Data.Parasite as Parasite
-import Codec.Image.XCF.Data.Vectors as Vectors
-
-import qualified Data.Attoparsec as Attoparsec
-import qualified Data.Attoparsec.Binary as Attoparsec
-import qualified Data.Attoparsec.Combinator as ParserCombinators
-import Data.Int
-import Control.Monad (unless, when)
-import Control.Monad.Trans.Class (lift)
-import Control.Monad.Trans.State
 import Prelude hiding (take)
 
 data Color = Color RGB |
@@ -149,17 +149,6 @@ anyString =
           (decodeUtf8' <$> take n) >>= either (fail . show) return
     emptyString :: (Monad p, Parsing p) => p Text.Text
     emptyString = word8 0 >> (return $ Text.empty)
-
-version :: Version.Version -> Attoparsec.Parser Version.Version
-version v = do
-  Attoparsec.string $ representation v
-  return v
-  
-anyVersion :: Attoparsec.Parser Version.Version
-anyVersion = do
-  let allVersions = values :: [Version.Version]
-  (Attoparsec.choice $ map version allVersions) <|>
-    ((CharString.unpack <$> Attoparsec.take 4) >>= fail . (++) "unknown version: ") -- tack on a fail parser
   
 anyLayerPointer :: Attoparsec.Parser LayerPointer
 anyLayerPointer = LayerPointer <$> anyUword
@@ -170,23 +159,22 @@ anyChannelPointer = ChannelPointer <$> anyUword
 image :: Attoparsec.Parser Image.Image
 image = do
   Attoparsec.string $ CharString.pack "gimp xcf "
-  v <- anyVersion
+  version <- (representedEnumerable Attoparsec.string) <|>
+             ((CharString.unpack <$> Attoparsec.take 4) >>= fail . (++) "unknown version: ")
   Attoparsec.word8 0
   width <- anyUword
   height <- anyUword
-  mode <- representedEnumerable uWord
-  imgprops <- Attoparsec.many' anyImageProperty
+  colorMode <- representedEnumerable uWord
+  imgprops <- Attoparsec.many' $ Attoparsec.choice $ map propertyOfType Property.allImageTypes
   layerptrs <- Attoparsec.many' anyLayerPointer
   Attoparsec.word8 0
   channelptrs <- Attoparsec.many' anyChannelPointer
   Attoparsec.word8 0
-  return $ Image.Image {Image.colorMode = mode}
-  
-propertyType :: Property.Type -> Attoparsec.Parser Property.Type
-propertyType t = do
-  uWord $ Property.representation t
-  return t
-  
+  return $ Image.Image {
+    Image.version = version,
+    Image.colorMode = colorMode
+    }
+    
 compressionIndicator :: Property.CompressionIndicator -> Attoparsec.Parser Property.CompressionIndicator
 compressionIndicator i = Attoparsec.word8 (Property.representation i) >> return i
 
@@ -237,12 +225,9 @@ anyParasite = do
     Parasite.payload = bs
     }
 
-anyColorMapColor :: (Functor p, Applicative p, Parsing p) => p ColorMap.Color
-anyColorMapColor = ColorMap.Color <$> anyWord8 <*> anyWord8 <*> anyWord8
-
 propertyOfType :: Property.Type -> Attoparsec.Parser Property.Property
 propertyOfType t = do
-  propertyType t
+  uWord $ Property.representation t
   case t of
     Property.EndType -> uWord 0 >> return Property.EndProperty
     Property.ColorMapType -> do
@@ -254,7 +239,8 @@ propertyOfType t = do
                  show numColors,
                  "but the number of colors indicated by the control word was",
                  show numColorsCheck]
-      (Property.ColorMapProperty . ColorMap.ColorMap) <$> (count numColors anyColorMapColor)
+      (Property.ColorMapProperty . ColorMap.ColorMap) <$>
+        (count numColors $ ColorMap.Color <$> anyWord8 <*> anyWord8 <*> anyWord8)
     Property.ActiveLayerType -> uWord 0 >> return Property.ActiveLayerProperty
     Property.ActiveChannelType -> uWord 0 >> return Property.ActiveChannelProperty
     Property.SelectionType -> uWord 4 >> return Property.SelectionProperty
@@ -423,22 +409,3 @@ propertyOfType t = do
     Property.GroupItemType -> undefined
     Property.ItemPathType -> undefined
     Property.GroupItemFlagsType -> undefined
-    
-anyProperty :: Attoparsec.Parser Property.Property
-anyProperty = do
-  let allPropertyTypes = values :: [Property.Type]
-  Attoparsec.choice $ map propertyOfType allPropertyTypes
-
-anyImageProperty :: Attoparsec.Parser Property.Property
-anyImageProperty = do
-  let allImageProperties = [
-        Property.ColorMapType,
-        Property.CompressionType,
-        Property.GuidesType,
-        Property.ResolutionType,
-        Property.UnitType,
-        Property.PathsType,
-        Property.UserUnitType,
-        Property.VectorsType
-        ]
-  Attoparsec.choice $ map propertyOfType allImageProperties

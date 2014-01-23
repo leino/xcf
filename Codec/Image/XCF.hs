@@ -160,24 +160,12 @@ anyVersion = do
   let allVersions = values :: [Version.Version]
   (Attoparsec.choice $ map version allVersions) <|>
     ((CharString.unpack <$> Attoparsec.take 4) >>= fail . (++) "unknown version: ") -- tack on a fail parser
-
-colorMode :: ColorMode.ColorMode -> Attoparsec.Parser ColorMode.ColorMode
-colorMode m = do
-  uWord $ ColorMode.representation m
-  return m
   
-anyColorMode :: Attoparsec.Parser ColorMode.ColorMode
-anyColorMode = do
-  let allModes = enumFromTo minBound maxBound :: [ColorMode.ColorMode]
-  Attoparsec.choice $ map colorMode allModes
-
 anyLayerPointer :: Attoparsec.Parser LayerPointer
 anyLayerPointer = LayerPointer <$> anyUword
 
 anyChannelPointer :: Attoparsec.Parser ChannelPointer
 anyChannelPointer = ChannelPointer <$> anyUword
-
-anyImageProperty = undefined
 
 image :: Attoparsec.Parser Image.Image
 image = do
@@ -186,13 +174,13 @@ image = do
   Attoparsec.word8 0
   width <- anyUword
   height <- anyUword
-  mode <- anyColorMode
+  mode <- representedEnumerable uWord
   imgprops <- Attoparsec.many' anyImageProperty
   layerptrs <- Attoparsec.many' anyLayerPointer
   Attoparsec.word8 0
   channelptrs <- Attoparsec.many' anyChannelPointer
   Attoparsec.word8 0
-  return undefined
+  return $ Image.Image {Image.colorMode = mode}
   
 propertyType :: Property.Type -> Attoparsec.Parser Property.Type
 propertyType t = do
@@ -428,9 +416,8 @@ propertyOfType t = do
           Vectors.activePathIdx = activePathIdx,
           Vectors.paths = paths
           }
-    Property.TextLayerFlagsType -> do
-      uWord 4
-      (Property.TextLayerFlagsProperty . TextLayerFlags.TextLayerFlags) <$> anyUword
+    Property.TextLayerFlagsType -> 
+      uWord 4 >> (Property.TextLayerFlagsProperty . TextLayerFlags.TextLayerFlags) <$> anyUword
     Property.SamplePointsType -> undefined
     Property.LockContentType -> undefined
     Property.GroupItemType -> undefined
@@ -441,3 +428,17 @@ anyProperty :: Attoparsec.Parser Property.Property
 anyProperty = do
   let allPropertyTypes = values :: [Property.Type]
   Attoparsec.choice $ map propertyOfType allPropertyTypes
+
+anyImageProperty :: Attoparsec.Parser Property.Property
+anyImageProperty = do
+  let allImageProperties = [
+        Property.ColorMapType,
+        Property.CompressionType,
+        Property.GuidesType,
+        Property.ResolutionType,
+        Property.UnitType,
+        Property.PathsType,
+        Property.UserUnitType,
+        Property.VectorsType
+        ]
+  Attoparsec.choice $ map propertyOfType allImageProperties

@@ -1,12 +1,14 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
+
 module Codec.Image.XCF.Data.ColorMode
-       (ColorMode (..),
-        representation)
+       (ColorMode (..))
        where
 
 import Codec.Image.XCF.Data.Word
+import Codec.Image.XCF.Represented
 data ColorMode = RGB | GrayScale | Indexed deriving (Bounded, Enum, Eq, Show)
 
-representation :: ColorMode -> UWord
-representation RGB = UWord 0
-representation GrayScale = UWord 1
-representation Indexed = UWord 2
+instance Represented UWord ColorMode where
+  representation RGB = UWord 0
+  representation GrayScale = UWord 1
+  representation Indexed = UWord 2

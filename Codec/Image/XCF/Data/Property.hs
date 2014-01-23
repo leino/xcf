@@ -23,6 +23,7 @@ import qualified Codec.Image.XCF.Data.FloatingSelection as FloatingSelection
 import qualified Codec.Image.XCF.Data.Mode as Mode
 import qualified Codec.Image.XCF.Data.Offset as Offset
 import qualified Codec.Image.XCF.Data.Color as Color
+import qualified Codec.Image.XCF.Data.Opacity as Opacity
 
 import Codec.Image.XCF.Represented
 import Data.ByteString
@@ -74,14 +75,14 @@ data Property =
   ActiveChannelProperty |
   SelectionProperty |
   FloatingSelectionProperty FloatingSelection.FloatingSelection |
-  OpacityProperty |
+  OpacityProperty Opacity.Opacity |
   ModeProperty Mode.Mode |
-  VisibleProperty |
-  LinkedProperty |
+  VisibleProperty {isVisible :: Bool} |
+  LinkedProperty {isLinked :: Bool} |
   LockAlphaProperty {alphaLocked :: Bool} |
   ApplyMaskProperty {shouldApplyLayerMask :: Bool} |
   EditMaskProperty {isBeingEdited :: Bool} |
-  ShowMaskProperty {isVisible :: Bool} |
+  ShowMaskProperty {isShown :: Bool} |
   ShowMaskedProperty | 
   OffsetsProperty Offset.Offset |
   ColorProperty Color.Color |

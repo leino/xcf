@@ -19,6 +19,7 @@ import qualified Codec.Image.XCF.Data.Color as Color
 import qualified Codec.Image.XCF.Data.ColorMap as ColorMap
 import qualified Codec.Image.XCF.Data.FloatingSelection as FloatingSelection
 import qualified Codec.Image.XCF.Data.Offset as Offset
+import qualified Codec.Image.XCF.Data.Opacity as Opacity
 
 import Codec.Image.XCF.Represented
 import Codec.Image.XCF.Data.Word
@@ -266,16 +267,19 @@ propertyOfType t = do
                  "but the number of colors indicated by the control word was",
                  show numColorsCheck]
       (Property.ColorMapProperty . ColorMap.ColorMap) <$> (count numColors anyColorMapColor)
-    Property.ActiveLayerType ->
-      uWord 0 >> return Property.ActiveLayerProperty
+    Property.ActiveLayerType -> uWord 0 >> return Property.ActiveLayerProperty
     Property.ActiveChannelType -> uWord 0 >> return Property.ActiveChannelProperty
-    Property.SelectionType -> undefined
+    Property.SelectionType -> uWord 4 >> return Property.SelectionProperty
     Property.FloatingSelectionType -> 
       uWord 4 >> (Property.FloatingSelectionProperty . FloatingSelection.FloatingSelection) <$> anyUword
-    Property.OpacityType -> undefined
+    Property.OpacityType ->
+      uWord 4 >> (Property.OpacityProperty . Opacity.Opacity . fromIntegral) <$>
+      (satisfying anyWord (\n -> n >= 0 && n < 256))
     Property.ModeType -> uWord 4 >> Property.ModeProperty <$> representedEnumerable uWord
-    Property.VisibleType -> undefined
-    Property.LinkedType -> undefined
+    Property.VisibleType ->
+      uWord 4 >> Property.VisibleProperty <$> ( (uWord 1 >> return True) <|> (uWord 0 >> return False) )
+    Property.LinkedType ->
+      uWord 4 >> Property.LinkedProperty <$> ( (uWord 1 >> return True) <|> (uWord 0 >> return False) )
     Property.LockAlphaType -> 
       uWord 4 >> Property.LockAlphaProperty <$> ( (uWord 1 >> return True) <|> (uWord 0 >> return False) )
     Property.ApplyMaskType -> 

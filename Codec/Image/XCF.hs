@@ -366,13 +366,15 @@ propertyOfType t = do
             abbreviation <- anyString
             nameSingular <- anyString
             namePlural <- anyString
-            return $ UserUnit.UserUnit {UserUnit.factor = factor,
-                                        UserUnit.numDecimals = digits,
-                                        UserUnit.identifier = id,
-                                        UserUnit.symbol = symbol,
-                                        UserUnit.abbreviation = abbreviation,
-                                        UserUnit.nameSingular = nameSingular,
-                                        UserUnit.namePlural = namePlural}
+            return $ UserUnit.UserUnit {
+              UserUnit.factor = factor,
+              UserUnit.numDecimals = digits,
+              UserUnit.identifier = id,
+              UserUnit.symbol = symbol,
+              UserUnit.abbreviation = abbreviation,
+              UserUnit.nameSingular = nameSingular,
+              UserUnit.namePlural = namePlural
+              }
       Property.UserUnitProperty <$> parseChecked "user unit" payloadSize userUnit
     Property.VectorsType -> do
       payloadSize <- (Size . fromIntegral) <$> anyUword
@@ -437,5 +439,5 @@ propertyOfType t = do
     
 anyProperty :: Attoparsec.Parser Property.Property
 anyProperty = do
-  let allPropertyTypes = enumFromTo minBound maxBound :: [Property.Type]
+  let allPropertyTypes = values :: [Property.Type]
   Attoparsec.choice $ map propertyOfType allPropertyTypes

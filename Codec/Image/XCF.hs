@@ -20,6 +20,7 @@ import Control.Monad.Trans.State
 
 import Codec.Image.XCF.Represented
 import Codec.Image.XCF.Data.Word
+import qualified Codec.Image.XCF.Data as Data
 import qualified Codec.Image.XCF.Data.ColorMode as ColorMode
 import qualified Codec.Image.XCF.Data.Image as Image
 import qualified Codec.Image.XCF.Data.Property as Property
@@ -37,20 +38,6 @@ import qualified Codec.Image.XCF.Data.Parasite as Parasite
 import qualified Codec.Image.XCF.Data.Vectors as Vectors
 
 import Prelude hiding (take)
-
-data Color = Color RGB |
-             GrayscaleColor Intensity |
-             IndexedColor ColorMapIndex
-data RGB = RGB Intensity Intensity Intensity
-newtype Intensity = Intensity Word8
-newtype ColorMapIndex = ColorMapIndex Word8
-newtype ColorMap = ColorMap (ColorMapIndex -> RGB)
-newtype Alpha = Alpha Intensity
-data Pixel = Pixel Alpha Color
-newtype ParasiteIdentifier = ParasiteIdentifier Text.Text
-data Parasite = Parasite ParasiteIdentifier
-newtype LayerPointer = LayerPointer UWord
-newtype ChannelPointer = ChannelPointer UWord
 
 newtype Size = Size Int64 deriving (Show, Eq)
 newtype CheckedParser a = CheckedParser (StateT Size Attoparsec.Parser a)
@@ -149,12 +136,6 @@ anyString =
           (decodeUtf8' <$> take n) >>= either (fail . show) return
     emptyString :: (Monad p, Parsing p) => p Text.Text
     emptyString = word8 0 >> (return $ Text.empty)
-  
-anyLayerPointer :: Attoparsec.Parser LayerPointer
-anyLayerPointer = LayerPointer <$> anyUword
-
-anyChannelPointer :: Attoparsec.Parser ChannelPointer
-anyChannelPointer = ChannelPointer <$> anyUword
 
 image :: Attoparsec.Parser Image.Image
 image = do
@@ -165,14 +146,17 @@ image = do
   width <- anyUword
   height <- anyUword
   colorMode <- representedEnumerable uWord
-  imgprops <- Attoparsec.many' $ Attoparsec.choice $ map propertyOfType Property.allImageTypes
-  layerptrs <- Attoparsec.many' anyLayerPointer
+  imageProperties <- Attoparsec.many' $ Attoparsec.choice $ map propertyOfType Property.allImageTypes
+  layerPointers <- Attoparsec.many' $ Data.LayerPointer <$> anyUword
   Attoparsec.word8 0
-  channelptrs <- Attoparsec.many' anyChannelPointer
+  channelPointers <- Attoparsec.many' $ Data.ChannelPointer <$> anyUword
   Attoparsec.word8 0
   return $ Image.Image {
     Image.version = version,
-    Image.colorMode = colorMode
+    Image.colorMode = colorMode,
+    Image.imageProperties = imageProperties,
+    Image.channelPointers = channelPointers,
+    Image.layerPointers = layerPointers
     }
     
 compressionIndicator :: Property.CompressionIndicator -> Attoparsec.Parser Property.CompressionIndicator

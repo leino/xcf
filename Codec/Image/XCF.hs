@@ -36,6 +36,7 @@ import qualified Codec.Image.XCF.Data.Tattoo as Tattoo
 import qualified Codec.Image.XCF.Data.UserUnit as UserUnit
 import qualified Codec.Image.XCF.Data.Parasite as Parasite
 import qualified Codec.Image.XCF.Data.Vectors as Vectors
+import qualified Codec.Image.XCF.Data.Layer as Layer
 
 import Prelude hiding (take)
 
@@ -158,7 +159,26 @@ image = do
     Image.channelPointers = channelPointers,
     Image.layerPointers = layerPointers
     }
-    
+
+layer :: Attoparsec.Parser Layer.Layer
+layer = do
+  width <- fromIntegral <$> anyUword
+  height <- fromIntegral <$> anyUword
+  layerType <- representedEnumerable uWord
+  name <- anyString
+  properties <- Attoparsec.many' $ Attoparsec.choice $ map propertyOfType Property.allLayerTypes
+  hierarchyPointer <- Layer.HierarchyPointer <$> anyUword
+  layerMaskPointer <- Layer.LayerMaskPointer <$> anyUword
+  return $ Layer.Layer {
+    Layer.width = width,
+    Layer.height = height,
+    Layer.layerType = layerType,
+    Layer.name = name,
+    Layer.properties = properties,
+    Layer.hierarchyPointer = hierarchyPointer,
+    Layer.layerMaskPointer = layerMaskPointer
+    }
+
 compressionIndicator :: Property.CompressionIndicator -> Attoparsec.Parser Property.CompressionIndicator
 compressionIndicator i = Attoparsec.word8 (Property.representation i) >> return i
 

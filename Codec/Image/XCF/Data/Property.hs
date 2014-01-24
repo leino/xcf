@@ -10,6 +10,7 @@ module Codec.Image.XCF.Data.Property (
   , GuideOrientation (..)
   , Unit (..)
   , allImageTypes
+  , allLayerTypes
    )
        where
 
@@ -77,6 +78,25 @@ allImageTypes = [
   PathsType,
   UserUnitType,
   VectorsType
+  ]
+
+allLayerTypes :: [Type]
+allLayerTypes = [
+  OpacityType,
+  VisibleType,
+  LinkedType,
+  TattooType,
+  ParasitesType,
+  EndType,
+  ActiveLayerType,
+  FloatingSelectionType,
+  ModeType,
+  LockAlphaType,
+  ApplyMaskType,
+  EditMaskType,
+  ShowMaskType,
+  OffsetsType,
+  TextLayerFlagsType
   ]
 
 data CompressionIndicator = None | RLE deriving (Bounded, Enum, Show)

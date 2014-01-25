@@ -37,6 +37,7 @@ import qualified Codec.Image.XCF.Data.UserUnit as UserUnit
 import qualified Codec.Image.XCF.Data.Parasite as Parasite
 import qualified Codec.Image.XCF.Data.Vectors as Vectors
 import qualified Codec.Image.XCF.Data.Layer as Layer
+import qualified Codec.Image.XCF.Data.Hierarchy as Hierarchy
 
 import Prelude hiding (take)
 
@@ -177,6 +178,21 @@ layer = do
     Layer.properties = properties,
     Layer.hierarchyPointer = hierarchyPointer,
     Layer.layerMaskPointer = layerMaskPointer
+    }
+
+hierarchy :: Attoparsec.Parser Hierarchy.Hierarchy
+hierarchy = do
+  width <- fromIntegral <$> anyUword
+  height <- fromIntegral <$> anyUword
+  bytesPerPixel <- fromIntegral <$> anyUword
+  levelPointer <- Hierarchy.LevelPointer <$> anyUword
+  Attoparsec.many' $ satisfying anyUword ((/=) 0) -- bunch of level pointers which are unused
+  uWord 0
+  return $ Hierarchy.Hierarchy {
+    Hierarchy.width = width,
+    Hierarchy.height = height,
+    Hierarchy.bytesPerPixel = bytesPerPixel,
+    Hierarchy.levelPointer = levelPointer
     }
 
 compressionIndicator :: Property.CompressionIndicator -> Attoparsec.Parser Property.CompressionIndicator

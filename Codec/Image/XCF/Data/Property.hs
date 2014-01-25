@@ -3,7 +3,6 @@
 module Codec.Image.XCF.Data.Property (
     Property (..)
   , Type (..)
-  , CompressionIndicator (..)
   , Represented (..)
   , Guide (..)
   , GuideCoordinate (..)
@@ -26,6 +25,7 @@ import qualified Codec.Image.XCF.Data.Mode as Mode
 import qualified Codec.Image.XCF.Data.Offset as Offset
 import qualified Codec.Image.XCF.Data.Color as Color
 import qualified Codec.Image.XCF.Data.Opacity as Opacity
+import qualified Codec.Image.XCF.Data.CompressionIndicator as CompressionIndicator
 
 import Codec.Image.XCF.Represented
 import Data.ByteString
@@ -99,7 +99,7 @@ allLayerTypes = [
   TextLayerFlagsType
   ]
 
-data CompressionIndicator = None | RLE deriving (Bounded, Enum, Show)
+
 
 data Property =
   EndProperty |
@@ -119,7 +119,7 @@ data Property =
   ShowMaskedProperty | 
   OffsetsProperty Offset.Offset |
   ColorProperty Color.Color |
-  CompressionProperty CompressionIndicator |
+  CompressionProperty CompressionIndicator.CompressionIndicator |
   GuidesProperty [Guide] |
   ResolutionProperty {horizontalResolution :: Float, verticalResolution :: Float} |
   TattooProperty |
@@ -148,10 +148,6 @@ newtype GuideCoordinate = GuideCoordinate Word
 
  -- TODO: move to own file under data
 data Guide = Guide GuideCoordinate GuideOrientation
-
- -- TODO: move to own file under data
-instance Represented Word8 CompressionIndicator where
-  representation = fromIntegral . fromEnum
 
  -- TODO: move to own file under data
 instance Represented UWord Type where

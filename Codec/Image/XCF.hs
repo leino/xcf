@@ -39,6 +39,8 @@ import qualified Codec.Image.XCF.Data.Vectors as Vectors
 import qualified Codec.Image.XCF.Data.Layer as Layer
 import qualified Codec.Image.XCF.Data.Hierarchy as Hierarchy
 import qualified Codec.Image.XCF.Data.Level as Level
+import qualified Codec.Image.XCF.Data.CompressionIndicator as CompressionIndicator
+import qualified Codec.Image.XCF.Data.Tile as Tile
 
 import Prelude hiding (take)
 
@@ -208,30 +210,54 @@ level = do
     Level.tilesPointer = tilesPointer
     }
 
-compressionIndicator :: Property.CompressionIndicator -> Attoparsec.Parser Property.CompressionIndicator
-compressionIndicator i = Attoparsec.word8 (Property.representation i) >> return i
+stream :: Int -> Attoparsec.Parser [Tile.Run]
+stream 0 = return []
+stream numBytesLeft = do
+  n <- anyWord8
+  let getLongRunlength = do
+        p <- fromIntegral <$> anyWord8
+        q <- fromIntegral <$> anyWord8
+        return $ p*256 + q
+  let modeParser
+        | n <= 126 = do
+          let runLength = (fromIntegral n) + 1
+          when (runLength > numBytesLeft) $ fail $ messageNoMoreBytes runLength numBytesLeft
+          v <- anyWord8
+          return (runLength, Tile.Run runLength v)
+        | n == 127 = do
+          runLength <- getLongRunlength
+          when (runLength > numBytesLeft) $ fail $ messageNoMoreBytes runLength numBytesLeft
+          v <- anyWord8
+          return (runLength, Tile.Run runLength v)
+        | n == 128 = do
+          runLength <- getLongRunlength
+          when (runLength > numBytesLeft) $ fail $ messageNoMoreBytes runLength numBytesLeft
+          bs <- take runLength
+          return (runLength, Tile.Block bs)
+        | n >= 129 = do
+          let runLength = 256 - (fromIntegral n)
+          when (runLength > numBytesLeft) $ fail $ messageNoMoreBytes runLength numBytesLeft
+          bs <- take runLength
+          return (runLength, Tile.Block bs)
+        where
+          messageNoMoreBytes runLength numBytesLeft =
+            unwords ["found a run of length", show runLength, "but only have",
+                     show numBytesLeft, "bytes left to account for"]
+  (runLength, r) <- modeParser
+  ((:) r) <$> (stream $ numBytesLeft - runLength)
 
-guideOrientation :: Property.GuideOrientation -> Attoparsec.Parser Property.GuideOrientation
-guideOrientation o = Attoparsec.word8 (Property.representation o) >> return o
 
-unit :: Property.Unit -> Attoparsec.Parser Property.Unit
-unit u = uWord (Property.representation u) >> return u
-
-anyCompressionIndicator :: Attoparsec.Parser Property.CompressionIndicator
-anyCompressionIndicator = Attoparsec.choice $ map compressionIndicator values
-
-anyGuideOrientation :: Attoparsec.Parser Property.GuideOrientation
-anyGuideOrientation = Attoparsec.choice $ map guideOrientation values
-
-anyUnit :: Attoparsec.Parser Property.Unit
-anyUnit = Attoparsec.choice $ map unit values
-
-anyGuide :: Attoparsec.Parser Property.Guide
-anyGuide = do
-  c <- (Property.GuideCoordinate <$> anyWord)
-  o <- anyGuideOrientation
-  return $ Property.Guide c o
+tiles :: Int -> Int -> Int -> CompressionIndicator.CompressionIndicator -> Attoparsec.Parser Tile.Tiles
+tiles levelWidth levelHeight bytesPerPixel CompressionIndicator.None = do -- uncompressed raw tiles
+  Tile.RawTiles <$> (Attoparsec.take $ levelWidth*levelHeight*bytesPerPixel)
+tiles levelWidth levelHeight bytesPerPixel CompressionIndicator.RLE = do -- RLE-compressed tiles
+  stream (levelWidth*levelHeight)
+  -- one stream for each bpp...
+  return undefined
   
+anyUnit :: Attoparsec.Parser Property.Unit
+anyUnit = representedEnumerable uWord
+
 satisfying :: (Monad p, Parsing p) => p a -> (a -> Bool) -> p a
 satisfying p cond = do
   x <- p
@@ -306,10 +332,12 @@ propertyOfType t = do
         }
     Property.ColorType -> 
       uWord 3 >> Property.ColorProperty <$> (Color.Color <$> anyWord8 <*> anyWord8 <*> anyWord8)
-    Property.CompressionType -> uWord 1 >> Property.CompressionProperty <$> anyCompressionIndicator
+    Property.CompressionType -> uWord 1 >> Property.CompressionProperty <$> representedEnumerable word8
     Property.GuidesType -> do
       n <- (flip div 5 . fromIntegral) <$> satisfying anyUword (divisible 5)
-      Property.GuidesProperty <$> Attoparsec.count n anyGuide
+      Property.GuidesProperty <$>
+        Attoparsec.count n
+        (Property.Guide <$> (Property.GuideCoordinate <$> anyWord) <*> (representedEnumerable word8))
     Property.ResolutionType -> do
       uWord 8
       x <- satisfying anyFloat (> 0)

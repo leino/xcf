@@ -38,6 +38,7 @@ import qualified Codec.Image.XCF.Data.Parasite as Parasite
 import qualified Codec.Image.XCF.Data.Vectors as Vectors
 import qualified Codec.Image.XCF.Data.Layer as Layer
 import qualified Codec.Image.XCF.Data.Hierarchy as Hierarchy
+import qualified Codec.Image.XCF.Data.Level as Level
 
 import Prelude hiding (take)
 
@@ -193,6 +194,18 @@ hierarchy = do
     Hierarchy.height = height,
     Hierarchy.bytesPerPixel = bytesPerPixel,
     Hierarchy.levelPointer = levelPointer
+    }
+
+level :: Attoparsec.Parser Level.Level
+level = do
+  width <- fromIntegral <$> anyUword
+  height <- fromIntegral <$> anyUword
+  tilesPointer <- Level.TilesPointer <$> anyUword
+  uWord 0
+  return $ Level.Level {
+    Level.width = width,
+    Level.height = height,
+    Level.tilesPointer = tilesPointer
     }
 
 compressionIndicator :: Property.CompressionIndicator -> Attoparsec.Parser Property.CompressionIndicator

@@ -1,4 +1,4 @@
-module Codec.Image.XCF.Data.Color
+module Codec.Image.XCF.Data.Channel
        (
          Color (..),
        ) where

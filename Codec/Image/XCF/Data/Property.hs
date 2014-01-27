@@ -23,7 +23,7 @@ import qualified Codec.Image.XCF.Data.ColorMap as ColorMap
 import qualified Codec.Image.XCF.Data.FloatingSelection as FloatingSelection
 import qualified Codec.Image.XCF.Data.Mode as Mode
 import qualified Codec.Image.XCF.Data.Offset as Offset
-import qualified Codec.Image.XCF.Data.Color as Color
+import qualified Codec.Image.XCF.Data.Channel as Channel
 import qualified Codec.Image.XCF.Data.Opacity as Opacity
 import qualified Codec.Image.XCF.Data.CompressionIndicator as CompressionIndicator
 
@@ -118,7 +118,7 @@ data Property =
   ShowMaskProperty {isShown :: Bool} |
   ShowMaskedProperty | 
   OffsetsProperty Offset.Offset |
-  ColorProperty Color.Color |
+  ColorProperty Channel.Color |
   CompressionProperty CompressionIndicator.CompressionIndicator |
   GuidesProperty [Guide] |
   ResolutionProperty {horizontalResolution :: Float, verticalResolution :: Float} |

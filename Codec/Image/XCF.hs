@@ -26,7 +26,7 @@ import qualified Codec.Image.XCF.Data.Image as Image
 import qualified Codec.Image.XCF.Data.Property as Property
 import qualified Codec.Image.XCF.Data.Version as Version
 import qualified Codec.Image.XCF.Data.TextLayerFlags as TextLayerFlags
-import qualified Codec.Image.XCF.Data.Color as Color
+import qualified Codec.Image.XCF.Data.Channel as Channel
 import qualified Codec.Image.XCF.Data.ColorMap as ColorMap
 import qualified Codec.Image.XCF.Data.FloatingSelection as FloatingSelection
 import qualified Codec.Image.XCF.Data.Offset as Offset
@@ -210,9 +210,9 @@ level = do
     Level.tilesPointer = tilesPointer
     }
 
-stream :: Int -> Attoparsec.Parser [Tile.Run]
-stream 0 = return []
-stream numBytesLeft = do
+runs :: Int -> Attoparsec.Parser [Tile.Run]
+runs 0 = return []
+runs numBytesLeft = do
   n <- anyWord8
   let getLongRunlength = do
         p <- fromIntegral <$> anyWord8
@@ -241,19 +241,36 @@ stream numBytesLeft = do
           return (runLength, Tile.Block bs)
         where
           messageNoMoreBytes runLength numBytesLeft =
-            unwords ["found a run of length", show runLength, "but only have",
+            unwords ["found a run of length", show runLength, ", but have only",
                      show numBytesLeft, "bytes left to account for"]
   (runLength, r) <- modeParser
-  ((:) r) <$> (stream $ numBytesLeft - runLength)
+  ((:) r) <$> (runs $ numBytesLeft - runLength)
 
+-- helper function
+tileSizes :: Int -> Int -> [(Int, Int)]
+tileSizes levelWidth levelHeight = undefined
 
-tiles :: Int -> Int -> Int -> CompressionIndicator.CompressionIndicator -> Attoparsec.Parser Tile.Tiles
-tiles levelWidth levelHeight bytesPerPixel CompressionIndicator.None = do -- uncompressed raw tiles
-  Tile.RawTiles <$> (Attoparsec.take $ levelWidth*levelHeight*bytesPerPixel)
-tiles levelWidth levelHeight bytesPerPixel CompressionIndicator.RLE = do -- RLE-compressed tiles
-  stream (levelWidth*levelHeight)
-  -- one stream for each bpp...
-  return undefined
+tile1bpp (w,h) = runs (w*h)
+tile2bpp (w,h) = (,) <$> runs (w*h) <*> runs (w*h)
+tile3bpp (w,h) = (,,) <$> runs (w*h) <*> runs (w*h) <*> runs (w*h)
+tile4bpp (w,h) = (,,,) <$> runs (w*h) <*> runs (w*h) <*> runs (w*h) <*> runs (w*h)
+
+tiles :: Int -> Int -> CompressionIndicator.CompressionIndicator ->
+         ColorMode.ColorMode -> Attoparsec.Parser Tile.Tiles
+tiles levelWidth levelHeight CompressionIndicator.None colorMode = do -- uncompressed raw tiles
+  Tile.RawTiles <$> (Attoparsec.take $ levelWidth * levelHeight * ColorMode.bytesPerPixel colorMode)
+tiles levelWidth levelHeight CompressionIndicator.RLE (ColorMode.NoAlpha ColorMode.RGB) = do
+  Tile.RGBTiles <$> (mapM tile3bpp $ tileSizes levelWidth levelHeight)
+tiles levelWidth levelHeight CompressionIndicator.RLE (ColorMode.Alpha ColorMode.RGB) = do
+  Tile.RGBAlphaTiles <$> (mapM tile4bpp $ tileSizes levelWidth levelHeight)
+tiles levelWidth levelHeight CompressionIndicator.RLE (ColorMode.NoAlpha ColorMode.GrayScale) = do
+  Tile.GrayscaleTiles <$> (mapM tile1bpp $ tileSizes levelWidth levelHeight)
+tiles levelWidth levelHeight CompressionIndicator.RLE (ColorMode.Alpha ColorMode.GrayScale) = do
+  Tile.GrayscaleAlphaTiles <$> (mapM tile2bpp $ tileSizes levelWidth levelHeight)
+tiles levelWidth levelHeight CompressionIndicator.RLE (ColorMode.NoAlpha ColorMode.Indexed) = do
+  Tile.IndexedTiles <$> (mapM tile1bpp $ tileSizes levelWidth levelHeight)
+tiles levelWidth levelHeight CompressionIndicator.RLE (ColorMode.Alpha ColorMode.Indexed) = do
+  Tile.IndexedAlphaTiles <$> (mapM tile2bpp $ tileSizes levelWidth levelHeight)
   
 anyUnit :: Attoparsec.Parser Property.Unit
 anyUnit = representedEnumerable uWord
@@ -331,7 +348,7 @@ propertyOfType t = do
         Offset.yOffset = dy
         }
     Property.ColorType -> 
-      uWord 3 >> Property.ColorProperty <$> (Color.Color <$> anyWord8 <*> anyWord8 <*> anyWord8)
+      uWord 3 >> Property.ColorProperty <$> (Channel.Color <$> anyWord8 <*> anyWord8 <*> anyWord8)
     Property.CompressionType -> uWord 1 >> Property.CompressionProperty <$> representedEnumerable word8
     Property.GuidesType -> do
       n <- (flip div 5 . fromIntegral) <$> satisfying anyUword (divisible 5)

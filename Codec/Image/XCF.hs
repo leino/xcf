@@ -246,9 +246,16 @@ runs numBytesLeft = do
   (runLength, r) <- modeParser
   ((:) r) <$> (runs $ numBytesLeft - runLength)
 
--- helper function
+-- Generate a sequence of tile sizes for a level.
+-- The sequence is in row-major, top-to-bottom and left-to-right order.
 tileSizes :: Int -> Int -> [(Int, Int)]
-tileSizes levelWidth levelHeight = undefined
+tileSizes levelWidth levelHeight =
+  (,) <$> (chunks levelWidth) <*> (chunks levelHeight)
+  where
+    -- make n in chunks of 64, plus possibly a smaller remainder chunk
+    chunks n = case divMod n 64 of (q,0) -> replicate q 64
+                                   (q,r) -> replicate q 64 ++ [r]
+    
 
 tile1bpp (w,h) = runs (w*h)
 tile2bpp (w,h) = (,) <$> runs (w*h) <*> runs (w*h)

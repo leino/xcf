@@ -10,5 +10,4 @@ printPartial (Attoparsec.Partial cont) = print $ cont $ CharString.pack ""
 main =
   head <$> getArgs >>=
   ByteString.readFile >>=
-  pure . parse >>=
-  print
+  pure . parse >>= \(Attoparsec.Done _ img) -> print img

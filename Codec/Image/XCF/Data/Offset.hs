@@ -6,4 +6,4 @@ module Codec.Image.XCF.Data.Offset
 data Offset = Offset {
   xOffset :: Int,
   yOffset :: Int
-  }
+  } deriving Show

@@ -4,4 +4,4 @@ module Codec.Image.XCF.Data.Tattoo
 
 import Codec.Image.XCF.Data.Word
 
-newtype Tattoo = Tattoo UWord
+newtype Tattoo = Tattoo UWord deriving Show

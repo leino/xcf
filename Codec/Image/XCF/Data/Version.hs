@@ -7,7 +7,7 @@ module Codec.Image.XCF.Data.Version
 import Data.ByteString.Char8
 import Codec.Image.XCF.Represented
 
-data Version = Version0 | Version1 | Version2 deriving (Bounded, Enum)
+data Version = Version0 | Version1 | Version2 deriving (Bounded, Enum, Eq, Show)
 
 instance Represented ByteString Version where
   representation Version0 = pack "file"

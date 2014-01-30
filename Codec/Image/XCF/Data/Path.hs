@@ -15,11 +15,11 @@ import Codec.Image.XCF.Data.Word
 data Version = Integral | Float | Tattoo deriving (Bounded, Enum, Show, Eq)
 data PointType = Anchor | Bezier deriving (Bounded, Enum, Show, Eq)
 
-data Point n = Point PointType n n 
+data Point n = Point PointType n n deriving Show
 data Path = IntegralPath [Point Int] |
             FloatPath [Point Float] |
-            TattooPath [Point Float]
-data Paths = Paths {activeIdx :: Int, paths :: [Path]}
+            TattooPath [Point Float] deriving Show
+data Paths = Paths {activeIdx :: Int, paths :: [Path]} deriving Show
 
 instance Represented Word8 Version where
   representation = (+) 1 . fromIntegral . fromEnum

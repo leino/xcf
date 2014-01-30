@@ -27,12 +27,12 @@ data ControlPoint =
     xTilt :: Float,
     yTilt :: Float,
     wheel :: Float
-    }
+    } deriving Show
 
 data Stroke = Stroke {
   closed :: Bool,
   controlPoints :: [ControlPoint]
-  }
+  } deriving Show
 
 data Path = Path {
   name :: Text,
@@ -40,12 +40,13 @@ data Path = Path {
   visible :: Bool,
   linked :: Bool,
   parasites :: [Parasite],
-  strokes :: [Stroke]}
+  strokes :: [Stroke]
+  } deriving Show
 
 data Vectors = Vectors {
   activePathIdx :: Int,
   paths :: [Path]
-  }
+  } deriving Show
 
 instance Represented UWord PointType where
   representation = fromIntegral . fromEnum

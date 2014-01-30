@@ -15,4 +15,4 @@ data Image = Image {
   imageProperties :: [Property.Property],
   channelPointers :: [Data.ChannelPointer],
   layerPointers :: [Data.LayerPointer]
-  }
+  } deriving Show

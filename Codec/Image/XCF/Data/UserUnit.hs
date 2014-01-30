@@ -4,10 +4,12 @@ module Codec.Image.XCF.Data.UserUnit
 
 import Data.Text
 
-data UserUnit = UserUnit {factor :: Float,
-                          numDecimals :: Int,
-                          identifier :: Text,
-                          symbol :: Text,
-                          abbreviation :: Text,
-                          nameSingular :: Text,
-                          namePlural :: Text}
+data UserUnit = UserUnit {
+  factor :: Float,
+  numDecimals :: Int,
+  identifier :: Text,
+  symbol :: Text,
+  abbreviation :: Text,
+  nameSingular :: Text,
+  namePlural :: Text
+  } deriving Show

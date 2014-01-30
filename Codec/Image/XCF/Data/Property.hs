@@ -133,7 +133,7 @@ data Property =
   LockContentProperty |
   GroupItemProperty |
   ItemPathProperty |
-  GroupItemFlagsProperty
+  GroupItemFlagsProperty deriving Show
 
 
 
@@ -144,10 +144,10 @@ data GuideOrientation = Horizontal | Vertical deriving (Bounded, Enum, Show)
 data Unit = Inches | Millimeters | Points | Picas deriving (Bounded, Enum, Show)
 
  -- TODO: move to own file under data
-newtype GuideCoordinate = GuideCoordinate Word
+newtype GuideCoordinate = GuideCoordinate Word deriving Show
 
  -- TODO: move to own file under data
-data Guide = Guide GuideCoordinate GuideOrientation
+data Guide = Guide GuideCoordinate GuideOrientation deriving Show
 
  -- TODO: move to own file under data
 instance Represented UWord Type where

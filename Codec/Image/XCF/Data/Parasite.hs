@@ -6,4 +6,4 @@ import Data.Word
 import Data.ByteString
 import Data.Text
 
-data Parasite = Parasite {name :: Text, flags :: Word8, payload :: ByteString}
+data Parasite = Parasite {name :: Text, flags :: Word8, payload :: ByteString} deriving Show

@@ -4,4 +4,4 @@ module Codec.Image.XCF.Data.Opacity
        ) where
 
 import Data.Word
-newtype Opacity = Opacity Word8
+newtype Opacity = Opacity Word8 deriving (Show, Eq)

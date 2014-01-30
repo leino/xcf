@@ -2,14 +2,22 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module Codec.Image.XCF where
+module Codec.Image.XCF
+       (
+         parse,
+         module Image
+       )
+       where
 
 import Control.Applicative
 import qualified Data.Text as Text
-import qualified Data.ByteString as ByteString
 import qualified Data.ByteString.Char8 as CharString
+import qualified Data.ByteString as ByteString
+import qualified Data.ByteString.Lazy as LazyByteString
 import Data.Text.Encoding
 import Data.Word hiding (Word)
+import Data.Binary.IEEE754
+import Data.Binary.Get
 import qualified Data.Attoparsec as Attoparsec
 import qualified Data.Attoparsec.Binary as Attoparsec
 import qualified Data.Attoparsec.Combinator as ParserCombinators
@@ -71,6 +79,11 @@ instance Parsing CheckedParser where
   anyWord32be = makeCheckable (Size 4) Attoparsec.anyWord32be
   word32be = makeCheckable (Size $ fromIntegral 4) . Attoparsec.word32be
   take n = makeCheckable (Size $ fromIntegral n) (Attoparsec.take n)
+
+type ErrorMessage = String
+
+parse :: ByteString.ByteString -> Attoparsec.Result Image.Image
+parse = Attoparsec.parse image
 
 count :: (Monad p, Parsing p) => Int -> p a -> p [a]
 count 0 _ = return []
@@ -152,9 +165,8 @@ image = do
   height <- anyUword
   colorMode <- representedEnumerable uWord
   imageProperties <- Attoparsec.many' $ Attoparsec.choice $ map propertyOfType Property.allImageTypes
-  layerPointers <- Attoparsec.many' $ Data.LayerPointer <$> anyUword
-  Attoparsec.word8 0
-  channelPointers <- Attoparsec.many' $ Data.ChannelPointer <$> anyUword
+  layerPointers <- Attoparsec.manyTill' (Data.LayerPointer <$> anyUword) (Attoparsec.word8 0)
+  channelPointers <- Attoparsec.manyTill' (Data.ChannelPointer <$> anyUword) (Attoparsec.word8 0)
   Attoparsec.word8 0
   return $ Image.Image {
     Image.version = version,
@@ -256,7 +268,7 @@ tileSizes levelWidth levelHeight =
     chunks n = case divMod n 64 of (q,0) -> replicate q 64
                                    (q,r) -> replicate q 64 ++ [r]
     
-
+-- helper functions to read tiles of various 1,2,3,4 bytes per pixel
 tile1bpp (w,h) = runs (w*h)
 tile2bpp (w,h) = (,) <$> runs (w*h) <*> runs (w*h)
 tile3bpp (w,h) = (,,) <$> runs (w*h) <*> runs (w*h) <*> runs (w*h)
@@ -290,8 +302,10 @@ satisfying p cond = do
 divisible :: Integral a => a -> a -> Bool
 divisible n x = x `mod` n == 0
 
-anyFloat :: Parsing p => p Float
-anyFloat = undefined
+anyFloat :: (Monad p, Parsing p) => p Float
+anyFloat = do
+  bs <- take 4
+  return $ runGet getFloat32be $ LazyByteString.fromChunks [bs]
 
 anyTattoo :: (Functor p, Parsing p) => p Tattoo.Tattoo
 anyTattoo = Tattoo.Tattoo <$> anyUword

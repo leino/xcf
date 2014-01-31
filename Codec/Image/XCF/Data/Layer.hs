@@ -26,7 +26,7 @@ data Layer = Layer {
   name :: Text,
   properties :: [Property.Property],
   hierarchyPointer :: HierarchyPointer,
-  layerMaskPointer :: LayerMaskPointer
+  layerMaskPointer :: Maybe LayerMaskPointer
   } deriving Show
 
 instance Represented UWord Type where

@@ -193,7 +193,7 @@ layer = do
                 (Attoparsec.choice $ map propertyOfType Property.allLayerTypes)
                 (propertyOfType Property.EndType)
   hierarchyPointer <- Layer.HierarchyPointer <$> anyUword
-  layerMaskPointer <- Layer.LayerMaskPointer <$> anyUword
+  layerMaskPointer <- (uWord 0 >> return Nothing) <|> (Just . Layer.LayerMaskPointer) <$> anyUword -- optional
   return $ Layer.Layer {
     Layer.width = width,
     Layer.height = height,

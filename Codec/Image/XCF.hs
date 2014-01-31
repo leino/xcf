@@ -144,7 +144,8 @@ anyString =
   (nonEmptyString <|> emptyString)
   where
     nonEmptyString = do
-      n <- fromIntegral <$> anyWord8
+      nPlusOne <- fromIntegral <$> anyUword
+      let n = nPlusOne-1
       t <- utf8 n
       word8 0
       return t
@@ -152,8 +153,8 @@ anyString =
         utf8 :: (Monad p, Functor p, Parsing p) => Int -> p Text.Text
         utf8 n =
           (decodeUtf8' <$> take n) >>= either (fail . show) return
-    emptyString :: (Monad p, Parsing p) => p Text.Text
-    emptyString = word8 0 >> (return $ Text.empty)
+    emptyString :: (Functor p, Monad p, Parsing p) => p Text.Text
+    emptyString = uWord 0 >> (return $ Text.empty)
 
 image :: Attoparsec.Parser Image.Image
 image = do
@@ -161,16 +162,18 @@ image = do
   version <- (representedEnumerable Attoparsec.string) <|>
              ((CharString.unpack <$> Attoparsec.take 4) >>= fail . (++) "unknown version: ")
   Attoparsec.word8 0
-  width <- anyUword
-  height <- anyUword
+  width <- fromIntegral <$> anyUword
+  height <- fromIntegral <$> anyUword
   colorMode <- representedEnumerable uWord
-  imageProperties <- Attoparsec.many' $ Attoparsec.choice $ map propertyOfType Property.allImageTypes
-  layerPointers <- Attoparsec.manyTill' (Data.LayerPointer <$> anyUword) (Attoparsec.word8 0)
-  channelPointers <- Attoparsec.manyTill' (Data.ChannelPointer <$> anyUword) (Attoparsec.word8 0)
-  Attoparsec.word8 0
+  imageProperties <- Attoparsec.many'
+                     (Attoparsec.choice $ map propertyOfType Property.allImageTypes)
+  layerPointers <- Attoparsec.manyTill' (Data.LayerPointer <$> anyUword) (uWord 0)
+  channelPointers <- Attoparsec.manyTill' (Data.ChannelPointer <$> anyUword) (uWord 0)
   return $ Image.Image {
     Image.version = version,
     Image.colorMode = colorMode,
+    Image.width = width,
+    Image.height = height,
     Image.imageProperties = imageProperties,
     Image.channelPointers = channelPointers,
     Image.layerPointers = layerPointers
@@ -313,8 +316,8 @@ anyTattoo = Tattoo.Tattoo <$> anyUword
 anyParasite :: (Monad p, Parsing p, Alternative p) => p Parasite.Parasite
 anyParasite = do
   s <- anyString
-  f <- anyWord8
-  n <- fromIntegral <$> anyWord8
+  f <- anyUword
+  n <- fromIntegral <$> anyUword
   bs <- take n
   return $ Parasite.Parasite {
     Parasite.name = s,
@@ -358,7 +361,7 @@ propertyOfType t = do
     Property.EditMaskType -> 
       uWord 4 >> Property.EditMaskProperty <$> ( (uWord 1 >> return True) <|> (uWord 0 >> return False) )
     Property.ShowMaskType -> 
-      uWord 4 >> Property.ShowMaskProperty <$> ( (uWord 1 >> return True) <|> (uWord 0 >> return False) )      
+      uWord 4 >> Property.ShowMaskProperty <$> ( (uWord 1 >> return True) <|> (uWord 0 >> return False) )
     Property.ShowMaskedType -> undefined
     Property.OffsetsType -> do
       uWord 8
@@ -384,9 +387,9 @@ propertyOfType t = do
         Property.horizontalResolution = x,
         Property.verticalResolution = y
         }
-    Property.TattooType -> uWord 4 >> Property.UnitProperty <$> anyUnit
+    Property.TattooType -> uWord 4 >> Property.TattooProperty <$> anyTattoo
     Property.ParasitesType -> do
-      l <- fromIntegral <$> anyWord8
+      l <- fromIntegral <$> anyUword
       -- use "checked" versions of all parsers, which keep track of how much has been parsed
       -- and fail immediately if we go over the limit, l
       ps <- parseChecked "parasites" (Size l) (many anyParasite)

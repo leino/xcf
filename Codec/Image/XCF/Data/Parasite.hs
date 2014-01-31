@@ -2,8 +2,8 @@ module Codec.Image.XCF.Data.Parasite
        (Parasite (..))
        where
 
-import Data.Word
+import Codec.Image.XCF.Data.Word
 import Data.ByteString
 import Data.Text
 
-data Parasite = Parasite {name :: Text, flags :: Word8, payload :: ByteString} deriving Show
+data Parasite = Parasite {name :: Text, flags :: UWord, payload :: ByteString} deriving Show

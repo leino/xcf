@@ -12,6 +12,8 @@ import qualified Codec.Image.XCF.Data.Property as Property
 data Image = Image {
   version :: Version.Version,
   colorMode :: ColorMode.OpaqueColorMode,
+  width :: Int,
+  height :: Int,
   imageProperties :: [Property.Property],
   channelPointers :: [Data.ChannelPointer],
   layerPointers :: [Data.LayerPointer]

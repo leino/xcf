@@ -25,6 +25,7 @@ import qualified Codec.Image.XCF.Data.Mode as Mode
 import qualified Codec.Image.XCF.Data.Offset as Offset
 import qualified Codec.Image.XCF.Data.Channel as Channel
 import qualified Codec.Image.XCF.Data.Opacity as Opacity
+import qualified Codec.Image.XCF.Data.Tattoo as Tattoo
 import qualified Codec.Image.XCF.Data.CompressionIndicator as CompressionIndicator
 
 import Codec.Image.XCF.Represented
@@ -70,6 +71,8 @@ data Type =
 
 allImageTypes :: [Type]
 allImageTypes = [
+  TattooType,
+  ParasitesType,
   ColorMapType,
   CompressionType,
   GuidesType,
@@ -122,7 +125,7 @@ data Property =
   CompressionProperty CompressionIndicator.CompressionIndicator |
   GuidesProperty [Guide] |
   ResolutionProperty {horizontalResolution :: Float, verticalResolution :: Float} |
-  TattooProperty |
+  TattooProperty Tattoo.Tattoo |
   ParasitesProperty [Parasite.Parasite] |
   UnitProperty Unit |
   PathsProperty Path.Paths |

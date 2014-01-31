@@ -4,8 +4,7 @@
 
 module Codec.Image.XCF
        (
-         parse,
-         module Image
+         parse, parseLayerAt
        )
        where
 
@@ -84,6 +83,9 @@ type ErrorMessage = String
 
 parse :: ByteString.ByteString -> Attoparsec.Result Image.Image
 parse = Attoparsec.parse image
+
+parseLayerAt :: Data.LayerPointer -> ByteString.ByteString -> Attoparsec.Result Layer.Layer
+parseLayerAt (Data.LayerPointer offset) = Attoparsec.parse layer . ByteString.drop (fromIntegral offset)
 
 count :: (Monad p, Parsing p) => Int -> p a -> p [a]
 count 0 _ = return []

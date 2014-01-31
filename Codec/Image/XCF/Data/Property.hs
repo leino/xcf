@@ -90,7 +90,6 @@ allLayerTypes = [
   LinkedType,
   TattooType,
   ParasitesType,
-  EndType,
   ActiveLayerType,
   FloatingSelectionType,
   ModeType,
@@ -99,43 +98,44 @@ allLayerTypes = [
   EditMaskType,
   ShowMaskType,
   OffsetsType,
-  TextLayerFlagsType
+  TextLayerFlagsType,
+  LockContentType
   ]
 
 
 
 data Property =
-  EndProperty |
+  EndProperty | -- 0
   ColorMapProperty ColorMap.ColorMap |
   ActiveLayerProperty |
   ActiveChannelProperty |
   SelectionProperty |
-  FloatingSelectionProperty FloatingSelection.FloatingSelection |
+  FloatingSelectionProperty FloatingSelection.FloatingSelection | -- 5
   OpacityProperty Opacity.Opacity |
   ModeProperty Mode.Mode |
   VisibleProperty {isVisible :: Bool} |
   LinkedProperty {isLinked :: Bool} |
-  LockAlphaProperty {alphaLocked :: Bool} |
+  LockAlphaProperty {alphaLocked :: Bool} | -- 10
   ApplyMaskProperty {shouldApplyLayerMask :: Bool} |
   EditMaskProperty {isBeingEdited :: Bool} |
   ShowMaskProperty {isShown :: Bool} |
   ShowMaskedProperty | 
-  OffsetsProperty Offset.Offset |
+  OffsetsProperty Offset.Offset | -- 15
   ColorProperty Channel.Color |
   CompressionProperty CompressionIndicator.CompressionIndicator |
   GuidesProperty [Guide] |
   ResolutionProperty {horizontalResolution :: Float, verticalResolution :: Float} |
-  TattooProperty Tattoo.Tattoo |
+  TattooProperty Tattoo.Tattoo | --20
   ParasitesProperty [Parasite.Parasite] |
   UnitProperty Unit |
   PathsProperty Path.Paths |
   UserUnitProperty UserUnit.UserUnit |
-  VectorsProperty Vectors.Vectors  |
+  VectorsProperty Vectors.Vectors  | --25
   TextLayerFlagsProperty TextLayerFlags.TextLayerFlags |
   SamplePointsProperty |
-  LockContentProperty |
+  LockContentProperty {isContentLocked :: Bool} |
   GroupItemProperty |
-  ItemPathProperty |
+  ItemPathProperty | -- 30
   GroupItemFlagsProperty deriving Show
 
 

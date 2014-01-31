@@ -85,7 +85,8 @@ parse :: ByteString.ByteString -> Attoparsec.Result Image.Image
 parse = Attoparsec.parse image
 
 parseLayerAt :: Data.LayerPointer -> ByteString.ByteString -> Attoparsec.Result Layer.Layer
-parseLayerAt (Data.LayerPointer offset) = Attoparsec.parse layer . ByteString.drop (fromIntegral offset)
+parseLayerAt (Data.LayerPointer offset) =
+  Attoparsec.parse layer . ByteString.drop (fromIntegral offset)
 
 count :: (Monad p, Parsing p) => Int -> p a -> p [a]
 count 0 _ = return []
@@ -188,7 +189,9 @@ layer = do
   height <- fromIntegral <$> anyUword
   layerType <- representedEnumerable uWord
   name <- anyString
-  properties <- Attoparsec.many' $ Attoparsec.choice $ map propertyOfType Property.allLayerTypes
+  properties <- Attoparsec.manyTill'
+                (Attoparsec.choice $ map propertyOfType Property.allLayerTypes)
+                (propertyOfType Property.EndType)
   hierarchyPointer <- Layer.HierarchyPointer <$> anyUword
   layerMaskPointer <- Layer.LayerMaskPointer <$> anyUword
   return $ Layer.Layer {
@@ -357,6 +360,8 @@ propertyOfType t = do
       uWord 4 >> Property.VisibleProperty <$> ( (uWord 1 >> return True) <|> (uWord 0 >> return False) )
     Property.LinkedType ->
       uWord 4 >> Property.LinkedProperty <$> ( (uWord 1 >> return True) <|> (uWord 0 >> return False) )
+    Property.LockContentType ->
+      uWord 4 >> Property.LockContentProperty <$> ( (uWord 1 >> return True) <|> (uWord 0 >> return False) )
     Property.LockAlphaType -> 
       uWord 4 >> Property.LockAlphaProperty <$> ( (uWord 1 >> return True) <|> (uWord 0 >> return False) )
     Property.ApplyMaskType -> 
@@ -510,7 +515,6 @@ propertyOfType t = do
     Property.TextLayerFlagsType -> 
       uWord 4 >> (Property.TextLayerFlagsProperty . TextLayerFlags.TextLayerFlags) <$> anyUword
     Property.SamplePointsType -> undefined
-    Property.LockContentType -> undefined
     Property.GroupItemType -> undefined
     Property.ItemPathType -> undefined
     Property.GroupItemFlagsType -> undefined

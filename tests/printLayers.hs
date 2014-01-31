@@ -6,10 +6,6 @@ import qualified Data.Attoparsec as Attoparsec
 import qualified Data.ByteString as ByteString
 import qualified Data.ByteString.Char8 as CharString
 
-printPartial (Attoparsec.Partial cont) = print $ cont $ CharString.pack ""
-
-printLayerAtPointer = undefined
-
 main =
   head <$> getArgs >>= ByteString.readFile >>= \bs -> do
     (pure $ parse bs) >>=  \(Attoparsec.Done _ img) -> do

@@ -165,8 +165,9 @@ image = do
   width <- fromIntegral <$> anyUword
   height <- fromIntegral <$> anyUword
   colorMode <- representedEnumerable uWord
-  imageProperties <- Attoparsec.many'
+  imageProperties <- Attoparsec.manyTill'
                      (Attoparsec.choice $ map propertyOfType Property.allImageTypes)
+                     (propertyOfType Property.EndType)
   layerPointers <- Attoparsec.manyTill' (Data.LayerPointer <$> anyUword) (uWord 0)
   channelPointers <- Attoparsec.manyTill' (Data.ChannelPointer <$> anyUword) (uWord 0)
   return $ Image.Image {
@@ -175,8 +176,8 @@ image = do
     Image.width = width,
     Image.height = height,
     Image.imageProperties = imageProperties,
-    Image.channelPointers = channelPointers,
-    Image.layerPointers = layerPointers
+    Image.layerPointers = layerPointers,
+    Image.channelPointers = channelPointers    
     }
 
 layer :: Attoparsec.Parser Layer.Layer

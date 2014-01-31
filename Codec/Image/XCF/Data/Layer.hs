@@ -9,15 +9,15 @@ import Codec.Image.XCF.Data.Word
 import Codec.Image.XCF.Represented
 import qualified Codec.Image.XCF.Data.Property as Property
 
-newtype HierarchyPointer = HierarchyPointer UWord
-newtype LayerMaskPointer = LayerMaskPointer UWord
+newtype HierarchyPointer = HierarchyPointer UWord deriving (Show, Eq)
+newtype LayerMaskPointer = LayerMaskPointer UWord deriving (Show, Eq)
 
 data Type = RGB |
             RGBAlpha |
             GrayScale |
             GrayScaleAlpha |
             Indexed |
-            IndexedAlpha deriving (Enum, Bounded)
+            IndexedAlpha deriving (Enum, Bounded, Show, Eq)
 
 data Layer = Layer {
   width :: Int,
@@ -27,7 +27,7 @@ data Layer = Layer {
   properties :: [Property.Property],
   hierarchyPointer :: HierarchyPointer,
   layerMaskPointer :: LayerMaskPointer
-  }
+  } deriving Show
 
 instance Represented UWord Type where
   representation = fromIntegral . fromEnum

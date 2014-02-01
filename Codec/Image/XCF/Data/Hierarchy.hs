@@ -4,11 +4,11 @@ module Codec.Image.XCF.Data.Hierarchy
 
 import Codec.Image.XCF.Data.Word
 
-newtype LevelPointer = LevelPointer UWord
+newtype LevelPointer = LevelPointer UWord deriving (Eq, Show)
 
 data Hierarchy = Hierarchy {
   width :: Int,
   height :: Int,
   bytesPerPixel :: Int,
   levelPointer :: LevelPointer
-  }
+  } deriving Show

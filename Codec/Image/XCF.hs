@@ -4,7 +4,7 @@
 
 module Codec.Image.XCF
        (
-         parse, parseLayerAt
+         parse, parseLayerAt, parseHierarchyAt
        )
        where
 
@@ -87,6 +87,11 @@ parse = Attoparsec.parse image
 parseLayerAt :: Data.LayerPointer -> ByteString.ByteString -> Attoparsec.Result Layer.Layer
 parseLayerAt (Data.LayerPointer offset) =
   Attoparsec.parse layer . ByteString.drop (fromIntegral offset)
+  
+parseHierarchyAt :: Layer.HierarchyPointer -> ByteString.ByteString ->
+                    Attoparsec.Result Hierarchy.Hierarchy
+parseHierarchyAt (Layer.HierarchyPointer offset) =
+  Attoparsec.parse hierarchy . ByteString.drop (fromIntegral offset)
 
 count :: (Monad p, Parsing p) => Int -> p a -> p [a]
 count 0 _ = return []

@@ -4,7 +4,10 @@
 
 module Codec.Image.XCF
        (
-         parse, parseLayerAt, parseHierarchyAt
+         parse,
+         parseLayerAt,
+         parseHierarchyAt,
+         parseLevelAt
        )
        where
 
@@ -92,6 +95,10 @@ parseHierarchyAt :: Layer.HierarchyPointer -> ByteString.ByteString ->
                     Attoparsec.Result Hierarchy.Hierarchy
 parseHierarchyAt (Layer.HierarchyPointer offset) =
   Attoparsec.parse hierarchy . ByteString.drop (fromIntegral offset)
+
+parseLevelAt :: Hierarchy.LevelPointer -> ByteString.ByteString -> Attoparsec.Result Level.Level
+parseLevelAt (Hierarchy.LevelPointer offset) =
+  Attoparsec.parse level . ByteString.drop (fromIntegral offset)
 
 count :: (Monad p, Parsing p) => Int -> p a -> p [a]
 count 0 _ = return []
@@ -228,12 +235,15 @@ level :: Attoparsec.Parser Level.Level
 level = do
   width <- fromIntegral <$> anyUword
   height <- fromIntegral <$> anyUword
-  tilesPointer <- Level.TilesPointer <$> anyUword
+  let numTiles =
+        (let (q, r) = divMod width 64  in q + if r == 0 then 0 else 1) *
+        (let (q, r) = divMod height 64 in q + if r == 0 then 0 else 1)
+  tilePointers <- Attoparsec.count numTiles (Level.TilePointer <$> anyUword)
   uWord 0
   return $ Level.Level {
     Level.width = width,
     Level.height = height,
-    Level.tilesPointer = tilesPointer
+    Level.tilePointers = tilePointers
     }
 
 runs :: Int -> Attoparsec.Parser [Tile.Run]

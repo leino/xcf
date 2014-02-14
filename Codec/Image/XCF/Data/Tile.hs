@@ -9,7 +9,7 @@ import Data.Word
 import Data.ByteString
 import Prelude hiding (length)
 
-data Run = Run Int Word8 | Block ByteString
+data Run = Run Int Word8 | Block ByteString deriving Show
 
 data Tiles =
   RawTiles ByteString | 
@@ -18,4 +18,4 @@ data Tiles =
   GrayscaleTiles [[Run]] |
   GrayscaleAlphaTiles [([Run], [Run])] |
   IndexedTiles [[Run]] |
-  IndexedAlphaTiles [([Run], [Run])]
+  IndexedAlphaTiles [([Run], [Run])] deriving Show

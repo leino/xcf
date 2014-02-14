@@ -7,7 +7,8 @@ module Codec.Image.XCF
          parse,
          parseLayerAt,
          parseHierarchyAt,
-         parseLevelAt
+         parseLevelAt,
+         parseTiles
        )
        where
 
@@ -99,6 +100,18 @@ parseHierarchyAt (Layer.HierarchyPointer offset) =
 parseLevelAt :: Hierarchy.LevelPointer -> ByteString.ByteString -> Attoparsec.Result Level.Level
 parseLevelAt (Hierarchy.LevelPointer offset) =
   Attoparsec.parse level . ByteString.drop (fromIntegral offset)
+
+parseTiles :: Level.Level -> ByteString.ByteString -> Attoparsec.Result Tile.Tiles
+parseTiles level bs =
+  Attoparsec.parse
+  (
+    tiles (Level.width level) (Level.height level)
+    CompressionIndicator.RLE
+    (ColorMode.Alpha ColorMode.RGB)
+  )
+  (ByteString.drop (fromIntegral $ offset) bs)
+  where
+    (Level.TilePointer offset):_ = Level.tilePointers level
 
 count :: (Monad p, Parsing p) => Int -> p a -> p [a]
 count 0 _ = return []
@@ -286,7 +299,7 @@ runs numBytesLeft = do
 -- The sequence is in row-major, top-to-bottom and left-to-right order.
 tileSizes :: Int -> Int -> [(Int, Int)]
 tileSizes levelWidth levelHeight =
-  (,) <$> (chunks levelWidth) <*> (chunks levelHeight)
+  [(w,h) | h <- chunks levelHeight, w <- chunks levelWidth]
   where
     -- make n in chunks of 64, plus possibly a smaller remainder chunk
     chunks n = case divMod n 64 of (q,0) -> replicate q 64
@@ -298,8 +311,8 @@ tile2bpp (w,h) = (,) <$> runs (w*h) <*> runs (w*h)
 tile3bpp (w,h) = (,,) <$> runs (w*h) <*> runs (w*h) <*> runs (w*h)
 tile4bpp (w,h) = (,,,) <$> runs (w*h) <*> runs (w*h) <*> runs (w*h) <*> runs (w*h)
 
-tiles :: Int -> Int -> CompressionIndicator.CompressionIndicator ->
-         ColorMode.ColorMode -> Attoparsec.Parser Tile.Tiles
+tiles :: Int -> Int -> CompressionIndicator.CompressionIndicator -> ColorMode.ColorMode ->
+         Attoparsec.Parser Tile.Tiles
 tiles levelWidth levelHeight CompressionIndicator.None colorMode = do -- uncompressed raw tiles
   Tile.RawTiles <$> (Attoparsec.take $ levelWidth * levelHeight * ColorMode.bytesPerPixel colorMode)
 tiles levelWidth levelHeight CompressionIndicator.RLE (ColorMode.NoAlpha ColorMode.RGB) = do

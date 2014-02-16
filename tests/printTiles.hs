@@ -27,7 +27,7 @@ main =
             | lp <- map levelPointer hierarchies
             ]
           tiless = [
-            parseTiles compressionIndicator level bs
+            let (Attoparsec.Done _ tiles) = parseTiles compressionIndicator level bs in tiles
             | level <- levels
             ]
       mapM_ print tiless

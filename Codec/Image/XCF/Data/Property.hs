@@ -102,8 +102,6 @@ allLayerTypes = [
   LockContentType
   ]
 
-
-
 data Property =
   EndProperty | -- 0
   ColorMapProperty ColorMap.ColorMap |
@@ -137,9 +135,7 @@ data Property =
   GroupItemProperty |
   ItemPathProperty | -- 30
   GroupItemFlagsProperty deriving Show
-
-
-
+                                  
 -- TODO: move to own file under data
 data GuideOrientation = Horizontal | Vertical deriving (Bounded, Enum, Show)
 

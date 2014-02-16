@@ -101,12 +101,13 @@ parseLevelAt :: Hierarchy.LevelPointer -> ByteString.ByteString -> Attoparsec.Re
 parseLevelAt (Hierarchy.LevelPointer offset) =
   Attoparsec.parse level . ByteString.drop (fromIntegral offset)
 
-parseTiles :: Level.Level -> ByteString.ByteString -> Attoparsec.Result Tile.Tiles
-parseTiles level bs =
+parseTiles :: CompressionIndicator.CompressionIndicator -> Level.Level ->
+              ByteString.ByteString -> Attoparsec.Result Tile.Tiles
+parseTiles compressionIndicator level bs =
   Attoparsec.parse
   (
     tiles (Level.width level) (Level.height level)
-    CompressionIndicator.RLE
+    compressionIndicator
     (ColorMode.Alpha ColorMode.RGB)
   )
   (ByteString.drop (fromIntegral $ offset) bs)

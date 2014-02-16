@@ -32,12 +32,4 @@ main =
             let (Attoparsec.Done _ tiles) = parseTiles compressionIndicator level bs in tiles
             | level <- levels
             ]
-      sequence_ [do
-                    let width = Hierarchy.width $ hierarchy
-                        height = Hierarchy.height $ hierarchy
-                        bs = decodeTiles tiles
-                        bmp = packRGBA32ToBMP width height bs 
-                        filename = concat ["layer_", show i, ".bmp"]
-                    writeBMP filename bmp
-                | (hierarchy, tiles, i) <- zip3 hierarchies tiless [0 ..]
-                ]
+      mapM_ print tiless

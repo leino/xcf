@@ -38,6 +38,10 @@ main =
                         bs = decodeTiles width height tiles
                         bmp = packRGBA32ToBMP width height bs 
                         filename = concat ["layer_", show i, ".bmp"]
+                    print "width: "
+                    print width
+                    print "height: "
+                    print height
                     writeBMP filename bmp
                 | (hierarchy, tiles, i) <- zip3 hierarchies tiless [0 ..]
                 ]

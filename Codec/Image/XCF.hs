@@ -295,16 +295,6 @@ runs numBytesLeft = do
                      show numBytesLeft, "bytes left to account for"]
   (runLength, r) <- modeParser
   ((:) r) <$> (runs $ numBytesLeft - runLength)
-
--- Generate a sequence of tile sizes for a level.
--- The sequence is in row-major, top-to-bottom and left-to-right order.
-tileSizes :: Int -> Int -> [(Int, Int)]
-tileSizes levelWidth levelHeight =
-  [(w,h) | h <- chunks levelHeight, w <- chunks levelWidth]
-  where
-    -- make n in chunks of 64, plus possibly a smaller remainder chunk
-    chunks n = case divMod n 64 of (q,0) -> replicate q 64
-                                   (q,r) -> replicate q 64 ++ [r]
     
 -- helper functions to read tiles of various 1,2,3,4 bytes per pixel
 tile1bpp (w,h) = runs (w*h)
@@ -317,17 +307,17 @@ tiles :: Int -> Int -> CompressionIndicator.CompressionIndicator -> ColorMode.Co
 tiles levelWidth levelHeight CompressionIndicator.None colorMode = do -- uncompressed raw tiles
   Tile.RawTiles <$> (Attoparsec.take $ levelWidth * levelHeight * ColorMode.bytesPerPixel colorMode)
 tiles levelWidth levelHeight CompressionIndicator.RLE (ColorMode.NoAlpha ColorMode.RGB) = do
-  Tile.RGBTiles <$> (mapM tile3bpp $ tileSizes levelWidth levelHeight)
+  Tile.RGBTiles <$> (mapM tile3bpp $ Tile.tileSizes levelWidth levelHeight)
 tiles levelWidth levelHeight CompressionIndicator.RLE (ColorMode.Alpha ColorMode.RGB) = do
-  Tile.RGBAlphaTiles <$> (mapM tile4bpp $ tileSizes levelWidth levelHeight)
+  Tile.RGBAlphaTiles <$> (mapM tile4bpp $ Tile.tileSizes levelWidth levelHeight)
 tiles levelWidth levelHeight CompressionIndicator.RLE (ColorMode.NoAlpha ColorMode.GrayScale) = do
-  Tile.GrayscaleTiles <$> (mapM tile1bpp $ tileSizes levelWidth levelHeight)
+  Tile.GrayscaleTiles <$> (mapM tile1bpp $ Tile.tileSizes levelWidth levelHeight)
 tiles levelWidth levelHeight CompressionIndicator.RLE (ColorMode.Alpha ColorMode.GrayScale) = do
-  Tile.GrayscaleAlphaTiles <$> (mapM tile2bpp $ tileSizes levelWidth levelHeight)
+  Tile.GrayscaleAlphaTiles <$> (mapM tile2bpp $ Tile.tileSizes levelWidth levelHeight)
 tiles levelWidth levelHeight CompressionIndicator.RLE (ColorMode.NoAlpha ColorMode.Indexed) = do
-  Tile.IndexedTiles <$> (mapM tile1bpp $ tileSizes levelWidth levelHeight)
+  Tile.IndexedTiles <$> (mapM tile1bpp $ Tile.tileSizes levelWidth levelHeight)
 tiles levelWidth levelHeight CompressionIndicator.RLE (ColorMode.Alpha ColorMode.Indexed) = do
-  Tile.IndexedAlphaTiles <$> (mapM tile2bpp $ tileSizes levelWidth levelHeight)
+  Tile.IndexedAlphaTiles <$> (mapM tile2bpp $ Tile.tileSizes levelWidth levelHeight)
   
 anyUnit :: Attoparsec.Parser Property.Unit
 anyUnit = representedEnumerable uWord

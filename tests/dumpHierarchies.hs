@@ -35,7 +35,7 @@ main =
       sequence_ [do
                     let width = Hierarchy.width $ hierarchy
                         height = Hierarchy.height $ hierarchy
-                        bs = decodeTiles tiles
+                        bs = decodeTiles width height tiles
                         bmp = packRGBA32ToBMP width height bs 
                         filename = concat ["layer_", show i, ".bmp"]
                     writeBMP filename bmp

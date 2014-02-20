@@ -2,13 +2,18 @@ module Codec.Image.XCF.Data.Tile
        (
          Run (..),
          Tiles (..),
-         decodeTiles
+         decodeTiles,
+         tileSizes
        )
        where
 
 import Data.Word
+import Data.List (transpose)
 import qualified Data.ByteString as ByteString
 import Prelude hiding (length)
+
+-- widht and height of a tile, in pixels
+tileDimension = 64
 
 data Run = Run Int Word8 | Block ByteString.ByteString deriving Show
 
@@ -40,11 +45,47 @@ decodeTile3bpp (runs1, runs2, runs3) = intertwine [runs1, runs2, runs3]
 decodeTile4bpp :: ([Run], [Run], [Run], [Run]) -> ByteString.ByteString
 decodeTile4bpp (runs1, runs2, runs3, runs4) = intertwine [runs1, runs2, runs3, runs4]
 
-decodeTiles :: Tiles -> ByteString.ByteString
-decodeTiles (RawTiles bs) = bs
-decodeTiles (RGBTiles rgbRuns) = ByteString.concat $ map decodeTile3bpp rgbRuns
-decodeTiles (RGBAlphaTiles rgbaRuns) = ByteString.concat $ map decodeTile4bpp rgbaRuns
-decodeTiles (GrayscaleTiles wRuns) = ByteString.concat $ map decodeTile1bpp wRuns
-decodeTiles (GrayscaleAlphaTiles waRuns) = ByteString.concat $ map decodeTile2bpp waRuns
-decodeTiles (IndexedTiles iRuns) = ByteString.concat $ map decodeTile1bpp iRuns
-decodeTiles (IndexedAlphaTiles iaRuns) = ByteString.concat $ map decodeTile2bpp iaRuns
+decodeTiles :: Int -> Int -> Tiles -> ByteString.ByteString
+decodeTiles levelWidth levelHeight (RawTiles bs) = bs
+decodeTiles levelWidth levelHeight (RGBTiles rgbRuns) =
+  deinterlaceTiles levelWidth levelHeight $ map decodeTile3bpp rgbRuns
+decodeTiles levelWidth levelHeight (RGBAlphaTiles rgbaRuns) =
+  deinterlaceTiles levelWidth levelHeight $ map decodeTile4bpp rgbaRuns
+decodeTiles levelWidth levelHeight (GrayscaleTiles wRuns) =
+  deinterlaceTiles levelWidth levelHeight $ map decodeTile1bpp wRuns
+decodeTiles levelWidth levelHeight (GrayscaleAlphaTiles waRuns) =
+  deinterlaceTiles levelWidth levelHeight $ map decodeTile2bpp waRuns
+decodeTiles levelWidth levelHeight (IndexedTiles iRuns) =
+  deinterlaceTiles levelWidth levelHeight $ map decodeTile1bpp iRuns
+decodeTiles levelWidth levelHeight (IndexedAlphaTiles iaRuns) =
+  deinterlaceTiles levelWidth levelHeight $ map decodeTile2bpp iaRuns
+
+deinterlaceTiles levelWidth levelHeight =
+  ByteString.pack . deinterlace levelWidth levelHeight . map ByteString.unpack
+
+chunksOf :: Int -> [a] -> [[a]]
+chunksOf _ [] = []
+chunksOf n xs = (take n xs):(chunksOf n $ drop n xs)
+
+deinterlace :: Int -> Int -> [[a]] -> [a]
+deinterlace levelWidth levelHeight ts =
+  let splitTiles = [chunksOf w t -- split the tiles into lists of rows pixels
+                   | (w,t) <- zip (map fst $ tileSizes levelWidth levelHeight) ts]
+      numCols = case divMod levelWidth tileDimension of
+        (q,0) -> q
+        (q,_) -> q + 1
+      rows = chunksOf numCols splitTiles         -- split the split tiles into rows of tiles
+      deinterlacedRows = map (concat . map concat . transpose) rows
+      in
+  concat deinterlacedRows
+
+-- make n in chunks of tileDimension (64 px), plus possibly a smaller remainder chunk
+chunks n = case divMod n tileDimension of (q,0) -> replicate q tileDimension
+                                          (q,r) -> replicate q tileDimension ++ [r]
+
+
+-- Generate a sequence of tile sizes for a level.
+-- The sequence is in row-major, top-to-bottom and left-to-right order.
+tileSizes :: Int -> Int -> [(Int, Int)]
+tileSizes levelWidth levelHeight =
+  [(w,h) | h <- chunks levelHeight, w <- chunks levelWidth]

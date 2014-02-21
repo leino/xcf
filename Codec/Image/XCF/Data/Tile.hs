@@ -48,28 +48,28 @@ decodeTile4bpp (runs1, runs2, runs3, runs4) = intertwine [runs1, runs2, runs3, r
 decodeTiles :: Int -> Int -> Tiles -> ByteString.ByteString
 decodeTiles levelWidth levelHeight (RawTiles bs) = bs
 decodeTiles levelWidth levelHeight (RGBTiles rgbRuns) =
-  deinterlaceTiles levelWidth levelHeight $ map decodeTile3bpp rgbRuns
+  deinterlaceTiles 3 levelWidth levelHeight $ map decodeTile3bpp rgbRuns
 decodeTiles levelWidth levelHeight (RGBAlphaTiles rgbaRuns) =
-  deinterlaceTiles levelWidth levelHeight $ map decodeTile4bpp rgbaRuns
+  deinterlaceTiles 4 levelWidth levelHeight $ map decodeTile4bpp rgbaRuns
 decodeTiles levelWidth levelHeight (GrayscaleTiles wRuns) =
-  deinterlaceTiles levelWidth levelHeight $ map decodeTile1bpp wRuns
+  deinterlaceTiles 1 levelWidth levelHeight $ map decodeTile1bpp wRuns
 decodeTiles levelWidth levelHeight (GrayscaleAlphaTiles waRuns) =
-  deinterlaceTiles levelWidth levelHeight $ map decodeTile2bpp waRuns
+  deinterlaceTiles 2 levelWidth levelHeight $ map decodeTile2bpp waRuns
 decodeTiles levelWidth levelHeight (IndexedTiles iRuns) =
-  deinterlaceTiles levelWidth levelHeight $ map decodeTile1bpp iRuns
+  deinterlaceTiles 1 levelWidth levelHeight $ map decodeTile1bpp iRuns
 decodeTiles levelWidth levelHeight (IndexedAlphaTiles iaRuns) =
-  deinterlaceTiles levelWidth levelHeight $ map decodeTile2bpp iaRuns
+  deinterlaceTiles 2 levelWidth levelHeight $ map decodeTile2bpp iaRuns
 
-deinterlaceTiles levelWidth levelHeight =
-  ByteString.pack . deinterlace levelWidth levelHeight . map ByteString.unpack
+deinterlaceTiles bpp levelWidth levelHeight =
+  ByteString.pack . deinterlace bpp levelWidth levelHeight . map ByteString.unpack
 
 chunksOf :: Int -> [a] -> [[a]]
 chunksOf _ [] = []
 chunksOf n xs = (take n xs):(chunksOf n $ drop n xs)
 
-deinterlace :: Int -> Int -> [[a]] -> [a]
-deinterlace levelWidth levelHeight ts =
-  let splitTiles = [chunksOf w t -- split the tiles into lists of rows pixels
+deinterlace :: Int -> Int -> Int -> [[a]] -> [a]
+deinterlace bpp levelWidth levelHeight ts =
+  let splitTiles = [chunksOf (w*bpp) t -- split the tiles into lists of rows pixels
                    | (w,t) <- zip (map fst $ tileSizes levelWidth levelHeight) ts]
       numCols = case divMod levelWidth tileDimension of
         (q,0) -> q

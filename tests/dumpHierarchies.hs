@@ -19,7 +19,7 @@ main =
     (pure $ parse bs) >>=  \(Attoparsec.Done _ img) -> do
       let compressionIndicator = fromJust $ Image.compressionIndicator img
           colorModeOpaque = Image.colorMode img
-          colorMode = ColorMode.NoAlpha colorModeOpaque          
+          colorMode = ColorMode.Alpha colorModeOpaque          
           layers = [
             let (Attoparsec.Done _ layer) = parseLayerAt lp bs in layer
             | lp <- Image.layerPointers img

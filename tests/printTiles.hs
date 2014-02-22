@@ -3,7 +3,7 @@ import System.Environment (getArgs)
 import Codec.BMP
 import Codec.Image.XCF
 import qualified Codec.Image.XCF.Data.Image as Image
-import Codec.Image.XCF.Data.Layer (hierarchyPointer)
+import qualified Codec.Image.XCF.Data.Layer as Layer
 import qualified Codec.Image.XCF.Data.Hierarchy as Hierarchy
 import Codec.Image.XCF.Data.Level
 import Codec.Image.XCF.Data.Tile
@@ -26,15 +26,13 @@ main =
             ]
           hierarchies = [
             let (Attoparsec.Done _ hierarchy) = parseHierarchyAt hp bs in hierarchy
-            | hp <- map hierarchyPointer layers]
+            | hp <- map Layer.hierarchyPointer layers]
           levels = [
             let (Attoparsec.Done _ level) = parseLevelAt lp bs in level
             | lp <- map Hierarchy.levelPointer hierarchies
             ]
           tiless = [
-            parseTiles compressionIndicator colorMode level bs
-            --let (Attoparsec.Done _ tiles) = parseTiles compressionIndicator level bs in tiles
-            | level <- levels
+            let (Attoparsec.Done _ tiles) = parseTiles compressionIndicator layerType level bs in tiles
+            | (layerType, level) <- zip (map Layer.layerType layers) levels
             ]
-      print compressionIndicator
       mapM_ print tiless

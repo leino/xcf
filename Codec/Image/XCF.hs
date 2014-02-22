@@ -102,15 +102,15 @@ parseLevelAt (Hierarchy.LevelPointer offset) =
   Attoparsec.parse level . ByteString.drop (fromIntegral offset)
 
 parseTiles :: CompressionIndicator.CompressionIndicator ->
-              ColorMode.ColorMode -> 
+              Layer.Type -> 
               Level.Level ->
               ByteString.ByteString -> Attoparsec.Result Tile.Tiles
-parseTiles compressionIndicator colorMode level bs =
+parseTiles compressionIndicator layerType level bs =
   Attoparsec.parse
   (
     tiles (Level.width level) (Level.height level)
     compressionIndicator
-    colorMode
+    layerType
   )
   (ByteString.drop (fromIntegral $ offset) bs)
   where
@@ -304,21 +304,22 @@ tile2bpp (w,h) = (,) <$> runs (w*h) <*> runs (w*h)
 tile3bpp (w,h) = (,,) <$> runs (w*h) <*> runs (w*h) <*> runs (w*h)
 tile4bpp (w,h) = (,,,) <$> runs (w*h) <*> runs (w*h) <*> runs (w*h) <*> runs (w*h)
 
-tiles :: Int -> Int -> CompressionIndicator.CompressionIndicator -> ColorMode.ColorMode ->
+tiles :: Int -> Int ->
+         CompressionIndicator.CompressionIndicator -> Layer.Type ->
          Attoparsec.Parser Tile.Tiles
-tiles levelWidth levelHeight CompressionIndicator.None colorMode = do -- uncompressed raw tiles
-  Tile.RawTiles <$> (Attoparsec.take $ levelWidth * levelHeight * ColorMode.bytesPerPixel colorMode)
-tiles levelWidth levelHeight CompressionIndicator.RLE (ColorMode.NoAlpha ColorMode.RGB) = do
+tiles levelWidth levelHeight CompressionIndicator.None layerType = do -- uncompressed raw tiles
+  Tile.RawTiles <$> (Attoparsec.take $ levelWidth * levelHeight * Layer.bytesPerPixel layerType)
+tiles levelWidth levelHeight CompressionIndicator.RLE Layer.RGB = do
   Tile.RGBTiles <$> (mapM tile3bpp $ Tile.tileSizes levelWidth levelHeight)
-tiles levelWidth levelHeight CompressionIndicator.RLE (ColorMode.Alpha ColorMode.RGB) = do
+tiles levelWidth levelHeight CompressionIndicator.RLE Layer.RGBAlpha = do
   Tile.RGBAlphaTiles <$> (mapM tile4bpp $ Tile.tileSizes levelWidth levelHeight)
-tiles levelWidth levelHeight CompressionIndicator.RLE (ColorMode.NoAlpha ColorMode.GrayScale) = do
+tiles levelWidth levelHeight CompressionIndicator.RLE Layer.GrayScale = do
   Tile.GrayscaleTiles <$> (mapM tile1bpp $ Tile.tileSizes levelWidth levelHeight)
-tiles levelWidth levelHeight CompressionIndicator.RLE (ColorMode.Alpha ColorMode.GrayScale) = do
+tiles levelWidth levelHeight CompressionIndicator.RLE Layer.GrayScaleAlpha = do
   Tile.GrayscaleAlphaTiles <$> (mapM tile2bpp $ Tile.tileSizes levelWidth levelHeight)
-tiles levelWidth levelHeight CompressionIndicator.RLE (ColorMode.NoAlpha ColorMode.Indexed) = do
+tiles levelWidth levelHeight CompressionIndicator.RLE Layer.Indexed = do
   Tile.IndexedTiles <$> (mapM tile1bpp $ Tile.tileSizes levelWidth levelHeight)
-tiles levelWidth levelHeight CompressionIndicator.RLE (ColorMode.Alpha ColorMode.Indexed) = do
+tiles levelWidth levelHeight CompressionIndicator.RLE Layer.IndexedAlpha = do
   Tile.IndexedAlphaTiles <$> (mapM tile2bpp $ Tile.tileSizes levelWidth levelHeight)
   
 anyUnit :: Attoparsec.Parser Property.Unit

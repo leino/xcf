@@ -1,7 +1,13 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 
 module Codec.Image.XCF.Data.Layer
-       (Layer (..), Type (..), HierarchyPointer (..), LayerMaskPointer (..))
+       (
+         Layer (..),
+         Type (..),
+         HierarchyPointer (..),
+         LayerMaskPointer (..),
+         bytesPerPixel,
+         )
        where
 
 import Data.Text
@@ -18,6 +24,14 @@ data Type = RGB |
             GrayScaleAlpha |
             Indexed |
             IndexedAlpha deriving (Enum, Bounded, Show, Eq)
+
+bytesPerPixel :: Type -> Int
+bytesPerPixel RGB = 3
+bytesPerPixel RGBAlpha = 4
+bytesPerPixel GrayScale = 1
+bytesPerPixel GrayScaleAlpha = 2
+bytesPerPixel Indexed = 1
+bytesPerPixel IndexedAlpha = 2
 
 data Layer = Layer {
   width :: Int,

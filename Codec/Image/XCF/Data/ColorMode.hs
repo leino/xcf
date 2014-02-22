@@ -15,7 +15,7 @@ data ColorMode = Alpha OpaqueColorMode | NoAlpha OpaqueColorMode
 
 bytesPerOpaquePixel :: OpaqueColorMode -> Int
 bytesPerOpaquePixel RGB = 3
-bytesPerOpaquePixel GrayScale = 2
+bytesPerOpaquePixel GrayScale = 1
 bytesPerOpaquePixel Indexed = 1
 
 bytesPerPixel :: ColorMode -> Int

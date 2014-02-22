@@ -7,11 +7,14 @@ module Codec.Image.XCF.Data.Layer
          HierarchyPointer (..),
          LayerMaskPointer (..),
          bytesPerPixel,
+         offsetInCanvas,
          )
        where
 
-import Data.Text
+import Data.Text hiding (find)
+import Data.List (find)
 import Codec.Image.XCF.Data.Word
+import qualified Codec.Image.XCF.Data.Offset as Offset
 import Codec.Image.XCF.Represented
 import qualified Codec.Image.XCF.Data.Property as Property
 
@@ -42,6 +45,18 @@ data Layer = Layer {
   hierarchyPointer :: HierarchyPointer,
   layerMaskPointer :: Maybe LayerMaskPointer
   } deriving Show
+
+
+isOffsetsProperty (Property.OffsetsProperty _) = True
+isOffsetsProperty _ = False
+
+-- Offset of this layer's top left corner, relative to top left corner of the canvas
+-- (x-coordinate going to the right, and y-coordinate going down)
+offsetInCanvas :: Layer -> Offset.Offset
+offsetInCanvas layer =
+  case find isOffsetsProperty (properties layer) of
+    Nothing -> Offset.Offset 0 0
+    Just (Property.OffsetsProperty offset) -> offset
 
 instance Represented UWord Type where
   representation = fromIntegral . fromEnum

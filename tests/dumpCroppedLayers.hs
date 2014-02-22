@@ -1,9 +1,9 @@
 import Control.Applicative ((<$>), pure)
 import qualified Data.Attoparsec as Attoparsec
 import qualified Data.ByteString as ByteString
+import Data.ByteString.Lazy (toStrict)
 import qualified Data.ByteString.Char8 as CharString
 import Data.Maybe (fromJust)
-import Codec.BMP
 import qualified Codec.Image.XCF as XCF
 import qualified Codec.Image.XCF.Data.Image as Image
 import qualified Codec.Image.XCF.Data.Layer as Layer
@@ -13,9 +13,11 @@ import qualified Codec.Image.XCF.Data.Offset as Offset
 import qualified Codec.Image.XCF.Data.ColorMode as ColorMode
 import qualified Codec.Image.XCF.Data.Property as Property
 import System.Environment (getArgs)
+import Codec.Picture.Png
+import Codec.Picture.Types
+import qualified Data.Vector.Storable as Vector
 
 data Bitmap = Bitmap {width :: Int, height :: Int, bytes :: ByteString.ByteString}
-data BMPFile = BMPFile {name :: String, bmp :: BMP} deriving Show
 data Rectangle = Rectangle Int Int Int Int deriving Show
 
 intersect :: Rectangle -> Rectangle -> Rectangle
@@ -84,12 +86,12 @@ main =
              cropBitmap cropRectangle bitmap
             | (Offset.Offset dx dy, bitmap@(Bitmap w h bs)) <- zip offsets bitmaps
             ]
-          bmps = [
-            BMPFile {
-               name = concat ["layer_", show i, ".bmp"],
-               bmp = packRGBA32ToBMP width height bs 
-               }
-            | (Bitmap width height bs, i) <- zip croppedBitmaps [0 ..]
+          pngs = [
+            let v = Vector.generate (ByteString.length bs) (\idx -> ByteString.index bs idx)
+                Right png = encodeDynamicPng $ ImageRGBA8 $ Image w h v
+            in
+             png
+            | (Bitmap w h bs) <- croppedBitmaps
             ]
       mapM_ print offsets
-      mapM_ (\(BMPFile filename bmp) -> writeBMP filename bmp) bmps
+      mapM_ (\(bs,i) -> ByteString.writeFile (unwords ["layer_", show i, ".png"]) (toStrict bs)) (zip pngs [0 ..])

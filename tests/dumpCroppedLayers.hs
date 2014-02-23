@@ -93,5 +93,4 @@ main =
              png
             | (Bitmap w h bs) <- croppedBitmaps
             ]
-      mapM_ print offsets
-      mapM_ (\(bs,i) -> ByteString.writeFile (unwords ["layer_", show i, ".png"]) (toStrict bs)) (zip pngs [0 ..])
+      mapM_ (\(bs,i) -> ByteString.writeFile (concat ["layer_", show i, ".png"]) (toStrict bs)) (zip pngs [0 ..])

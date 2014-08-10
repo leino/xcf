@@ -1,0 +1,7 @@
+Note: Though the parser is complete, I havent yet decided on the appropriate API and have yet to write any extensive tests, so this is a work in progress.
+
+This is a parser for the binary XCF (.xcf) file format, used by Gimp, the GNU image-manipulation tool.
+
+The parser was written guided by the documentation  http://henning.makholm.net/xcftools/xcfspec-saved, by Henning Makholm.
+Though this document is excellent and clearly written, these days not totally complete, and I had to extend the document a little bit myself.
+(I intend to push this small contribution as soon as I have figured out the procedure for contributing to the Gimp project.)
